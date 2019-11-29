@@ -1,6 +1,8 @@
 package com.portafolio.controllers
 
+import com.portafolio.entities.ApplicationUser
 import com.portafolio.entities.Company
+import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.repositories.CompanyRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -20,6 +22,9 @@ class GeneralController {
     @Autowired
     private lateinit var repository: CompanyRepository
 
+    @Autowired
+    private lateinit var userRepository: ApplicationUserRepository
+
     @GetMapping("/status")
     fun statusController() : ResponseEntity<Map<String, String>>{
 
@@ -36,6 +41,14 @@ class GeneralController {
         log.info("[statusController] Test for logs in portfolio")
 
         return repository.getOne(idCompany)
+    }
+
+    @GetMapping("/applicationuser/{username}")
+    fun infoUser(
+        @PathVariable("username") username: String
+    ) : ApplicationUser? {
+
+        return userRepository.findByUsername(username)
     }
 
 }
