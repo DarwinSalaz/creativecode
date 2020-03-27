@@ -32,8 +32,24 @@ class CustomerMapper {
             email = customerDto.email,
             identificationNumber = customerDto.identificationNumber,
             gender = customerDto.gender,
-            icon = iconCustomer
+            icon = iconCustomer,
+            observation = customerDto.observation,
+            walletId = customerDto.walletId
         )
+
+        return customer
+    }
+
+    fun map(customerDto: CustomerDto, customer: Customer) : Customer {
+        customer.name = customerDto.name
+        customer.lastName = customerDto.lastName ?: customer.lastName
+        customer.address = customerDto.address ?: customer.address
+        customer.cellphone = customerDto.cellphone ?: customer.cellphone
+        customer.email = customerDto.email ?: customer.email
+        customer.identificationNumber = customerDto.identificationNumber ?: customer.identificationNumber
+        customer.gender = customerDto.gender ?: customer.gender
+        customer.observation = customerDto.observation ?: customer.observation
+        customer.walletId = customerDto.walletId
 
         return customer
     }

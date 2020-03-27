@@ -34,6 +34,12 @@ data class CustomerDto (
     val active: Boolean = true,
 
     @JsonProperty("gender")
-    val gender: String? = null
+    val gender: String? = null,
+
+    @JsonProperty("observation")
+    val observation: String? = null,
+
+    @JsonProperty("wallet_id")
+    val walletId: Int
 
 )

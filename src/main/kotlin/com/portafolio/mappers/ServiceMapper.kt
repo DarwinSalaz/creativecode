@@ -32,7 +32,9 @@ class ServiceMapper {
             state = serviceDto.state,
             daysPerFee = serviceDto.daysPerFee,
             quantityOfFees = serviceDto.quantityOfFees,
-            feeValue = serviceDto.feeValue
+            feeValue = serviceDto.feeValue,
+            observations = serviceDto.observations,
+            nextPaymentDate = serviceDto.nextPaymentDate
         )
 
         service.serviceProducts = serviceDto.serviceProducts
@@ -57,7 +59,8 @@ class ServiceMapper {
             state = service.state,
             daysPerFee = service.daysPerFee,
             quantityOfFees = service.quantityOfFees,
-            feeValue = service.feeValue
+            feeValue = service.feeValue,
+            observations = service.observations
         )
 
         serviceDto.serviceProducts = service.serviceProducts

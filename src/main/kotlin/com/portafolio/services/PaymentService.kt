@@ -26,7 +26,7 @@ class PaymentService {
     private lateinit var cashControlService: CashControlService
 
     @Transactional
-    fun save(payment: Payment) : Payment {
+    fun save(payment: Payment, nextPaymentDate: LocalDateTime?) : Payment {
 
         //validate if the user has an active cash control
         val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(payment.applicationUserId)
@@ -47,7 +47,7 @@ class PaymentService {
             cashControlService.updateValueForNewService(activeCashControl, payment.value)
         }
 
-        serviceRepository.updateDebtService(payment.value, payment.serviceId)
+        serviceRepository.updateDebtService(payment.value, nextPaymentDate, payment.serviceId)
 
         return repository.save(payment)
     }

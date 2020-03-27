@@ -1,10 +1,16 @@
 package com.portafolio.repositories
 
 import com.portafolio.entities.Customer
+import com.portafolio.entities.RelUserWallet
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
+import org.springframework.data.domain.Pageable
 
 @Repository
 interface CustomerRepository: JpaRepository<Customer, Long> {
+
+    @Query("SELECT c FROM Customer c WHERE c.walletId in ?1")
+    fun findAllCustomerByWallets(walletIds: List<Int>, pageable: Pageable) : List<Customer>?
 
 }

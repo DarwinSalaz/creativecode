@@ -1,6 +1,8 @@
 package com.portafolio.controllers
 
+import com.portafolio.dtos.PaymentDto
 import com.portafolio.entities.Payment
+import com.portafolio.mappers.PaymentMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.PaymentService
@@ -23,8 +25,11 @@ class PaymentController {
     @Autowired
     lateinit var applicationUserRepository: ApplicationUserRepository
 
+    @Autowired
+    lateinit var mapper: PaymentMapper
+
     @PostMapping("/payment/create")
-    fun registerPayment(@Valid @RequestBody payment : Payment,
+    fun registerPayment(@Valid @RequestBody paymentDto : PaymentDto,
                         @RequestHeader("Authorization") authorization: String) : Payment? {
 
         val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
@@ -33,9 +38,11 @@ class PaymentController {
 
         user ?: return null
 
-        payment.applicationUserId = user.applicationUserId
+        paymentDto.applicationUserId = user.applicationUserId
 
-        return service.save(payment)
+        val payment = mapper.map(paymentDto)
+
+        return service.save(payment, paymentDto.nextPaymentDate)
     }
 
 }

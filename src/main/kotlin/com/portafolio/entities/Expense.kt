@@ -11,30 +11,38 @@ import javax.persistence.GeneratedValue
 import javax.persistence.GenerationType
 import javax.persistence.Column
 
-@Table(name = "payments")
+@Table(name = "expenses")
 @Entity
-data class Payment (
+data class Expense (
 
     @Id
-    @JsonProperty("payment_id")
+    @JsonProperty("expense_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "payment_id")
-    val paymentId: Long = 0,
+    @Column(name = "expense_id")
+    val expenseId: Long = 0,
 
     @JsonProperty("application_user_id")
     @Column(name = "application_user_id")
     var applicationUserId: Long = 0,
 
-    @JsonProperty("service_id")
-    @Column(name = "service_id")
-    val serviceId: Long = 0,
+    @JsonProperty("expense_type")
+    @Column(name = "expense_type")
+    var expenseType: String,
 
     @JsonProperty("value")
     @Column(name = "value")
     val value: BigDecimal = BigDecimal.ZERO,
 
+    @JsonProperty("expense_date")
+    @Column(name = "expense_date")
+    val expenseDate: LocalDateTime,
+
     @JsonProperty("created_at")
     @Column(name = "created_at")
-    val createdAt: LocalDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+    val createdAt: LocalDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+
+    @JsonProperty("justification")
+    @Column(name = "justification")
+    var justification: String?
 
 )

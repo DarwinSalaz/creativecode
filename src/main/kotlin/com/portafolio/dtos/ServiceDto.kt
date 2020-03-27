@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import javax.persistence.Column
 import javax.validation.constraints.NotNull
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -60,6 +61,12 @@ data class ServiceDto (
     val state: String = "CREATED",
 
     @JsonProperty(value = "service_products")
-    var serviceProducts: MutableList<ServiceProductDto> = mutableListOf()
+    var serviceProducts: MutableList<ServiceProductDto> = mutableListOf(),
+
+    @JsonProperty("observations")
+    val observations: String?,
+
+    @JsonProperty("next_payment_date")
+    val nextPaymentDate: LocalDateTime? = null
 
 )

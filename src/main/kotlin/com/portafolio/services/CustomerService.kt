@@ -20,4 +20,9 @@ class CustomerService {
         return repository.save(customer)
     }
 
+    fun update(customer: Customer) : Customer {
+
+        return repository.save(customer)
+    }
+
 }

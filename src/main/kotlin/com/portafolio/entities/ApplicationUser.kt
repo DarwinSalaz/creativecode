@@ -13,7 +13,7 @@ data class ApplicationUser (
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonProperty("application_user_id")
     @Column(name = "application_user_id")
-    val applicationUserId: Long,
+    val applicationUserId: Long = 0,
 
     @Column(name = "company_id")
     @JsonProperty("company_id")
@@ -28,6 +28,14 @@ data class ApplicationUser (
     @JsonProperty("last_name")
     @Column(name = "last_name")
     val lastName: String? = null,
+
+    @JsonProperty("cellphone")
+    @Column(name = "cellphone")
+    val cellphone: String? = null,
+
+    @JsonProperty("email")
+    @Column(name = "email")
+    val email: String? = null,
 
     @Column(name = "password")
     var password: String,

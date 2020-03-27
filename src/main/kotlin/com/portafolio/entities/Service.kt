@@ -53,7 +53,13 @@ data class Service (
     @Column(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
-    val state: String = ""
+    val state: String = "",
+
+    @Column(name = "observations")
+    val observations: String? = null,
+
+    @Column(name = "next_payment_date")
+    val nextPaymentDate: LocalDateTime? = null
 
 ) {
     @JsonProperty("service_products")

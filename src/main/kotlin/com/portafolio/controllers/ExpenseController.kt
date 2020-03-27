@@ -1,22 +1,24 @@
 package com.portafolio.controllers
 
-import com.portafolio.dtos.CashControlResponse
-import com.portafolio.entities.CashControl
-import com.portafolio.mappers.CashControlMapper
+import com.portafolio.dtos.ExpenseDto
+import com.portafolio.dtos.PaymentDto
+import com.portafolio.entities.Expense
+import com.portafolio.mappers.ExpenseMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
-import com.portafolio.services.CashControlService
+import com.portafolio.services.ExpenseService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import javax.validation.Valid
 
 @Validated
 @RestController
 @CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST])
-class CashControlController {
+class ExpenseController {
 
     @Autowired
-    private lateinit var service: CashControlService
+    lateinit var mapper: ExpenseMapper
 
     @Autowired
     lateinit var applicationUserService: ApplicationUserService
@@ -25,19 +27,22 @@ class CashControlController {
     lateinit var applicationUserRepository: ApplicationUserRepository
 
     @Autowired
-    lateinit var cashControlMapper: CashControlMapper
+    lateinit var service: ExpenseService
 
-    @GetMapping("/cash_control/active")
-    fun getActiveCashControl(@RequestHeader("Authorization") authorization: String): CashControlResponse? {
-
+    @PostMapping("/expense/create")
+    fun create(@Valid @RequestBody expenseDto : ExpenseDto,
+               @RequestHeader("Authorization") authorization: String): Expense? {
         val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
         val applicationUsername : String = applicationUserService.verifyToken(token)
         val user = applicationUserRepository.findByUsername(applicationUsername)
 
         user ?: return null
 
-        return cashControlMapper.map(service.findActiveCashControlByUser(user.applicationUserId), user)
-    }
+        expenseDto.applicationUserId = user.applicationUserId
 
+        val expense = mapper.map(expenseDto)
+
+        return service.save(expense)
+    }
 
 }

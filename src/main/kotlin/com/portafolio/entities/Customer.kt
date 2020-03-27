@@ -22,36 +22,44 @@ data class Customer (
 
     @NotNull
     @Column(name = "name")
-    val name: String,
+    var name: String,
 
     @JsonProperty("last_name")
     @Column(name = "last_name")
-    val lastName: String? = null,
+    var lastName: String? = null,
 
     @Column(name = "cellphone")
-    val cellphone: String? = null,
+    var cellphone: String? = null,
 
     @Column(name = "email")
-    val email: String? = null,
+    var email: String? = null,
 
     @Column(name = "address")
-    val address: String? = null,
+    var address: String? = null,
 
     @JsonProperty("identification_number")
     @Column(name = "identification_number")
-    val identificationNumber: String? = null,
+    var identificationNumber: String? = null,
 
     @Column(name = "active")
-    val active: Boolean = true,
+    var active: Boolean = true,
 
     @JsonProperty("created_at")
     @Column(name = "created_at")
-    val createdAt: LocalDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+    var createdAt: LocalDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
 
     @JsonProperty("gender")
-    val gender: String? = "m",
+    var gender: String? = "m",
 
     @JsonProperty("icon")
-    val icon: String? = "av-1.png"
+    val icon: String? = "av-1.png",
+
+    @JsonProperty("observation")
+    @Column(name = "observation")
+    var observation: String? = null,
+
+    @JsonProperty("wallet_id")
+    @Column(name = "wallet_id")
+    var walletId: Int
 
 )
