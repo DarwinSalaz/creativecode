@@ -6,14 +6,10 @@ import com.portafolio.dtos.WalletRequest
 import com.portafolio.entities.Customer
 import com.portafolio.mappers.CustomerMapper
 import com.portafolio.repositories.CustomerRepository
-import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.CustomerService
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
-import org.springframework.util.CollectionUtils
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import javax.validation.Valid

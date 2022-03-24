@@ -13,7 +13,8 @@ class ExpenseMapper {
             expenseType = expenseDto.expenseType,
             value = expenseDto.value,
             expenseDate = expenseDto.expenseDate,
-            justification = expenseDto.justification
+            justification = expenseDto.justification,
+            walletId = expenseDto.walletId
         )
 
 }

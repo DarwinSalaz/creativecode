@@ -27,7 +27,7 @@ data class CashControl (
     val startsDate: LocalDateTime = LocalDateTime.now(),
 
     @Column(name = "ends_date")
-    val endsDate: LocalDateTime? = null,
+    var endsDate: LocalDateTime? = null,
 
     @Column(name = "cash")
     val cash: BigDecimal,
@@ -39,9 +39,27 @@ data class CashControl (
     val expenses: BigDecimal,
 
     @Column(name = "active")
-    val active: Boolean,
+    var active: Boolean,
 
     @Column(name = "services_count")
-    val servicesCount: Int
+    var servicesCount: Int,
+
+    @Column(name = "commission")
+    var commission: BigDecimal? = null,
+
+    @Column(name = "closure_user")
+    var closureUser: String? = null,
+
+    @Column(name = "closure_value_received")
+    var closureValueReceived: BigDecimal? = null,
+
+    @Column(name = "closure_date")
+    var closureDate: LocalDateTime? = null,
+
+    @Column(name = "closure_notes")
+    var closureNotes: String? = null,
+
+    @Column(name = "down_payments")
+    var downPayments: BigDecimal? = null
 
 )

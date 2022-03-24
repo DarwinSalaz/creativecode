@@ -29,6 +29,14 @@ data class Product (
 
     @NotNull
     @Column(name = "value")
-    val value: BigDecimal
+    val value: BigDecimal,
+
+    @ManyToOne(fetch= FetchType.LAZY, cascade= [CascadeType.PERSIST])
+    @JoinColumn(name = "wallet_id")
+    var wallet: Wallet,
+
+    @NotNull
+    @Column(name = "left_quantity")
+    var leftQuantity: Int
 
 )

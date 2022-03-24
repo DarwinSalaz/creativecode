@@ -41,7 +41,21 @@ data class CashControlResponse (
     val period: String,
 
     @JsonProperty("services_count")
-    val servicesCount: Int
+    val servicesCount: Int,
 
+    @JsonProperty("cash_number")
+    val cashNumber: BigDecimal,
+
+    @JsonProperty("commission")
+    val commission: String,
+
+    @JsonProperty("commission_number")
+    val commissionNumber: BigDecimal,
+
+    @JsonProperty("down_payments")
+    val downPayments: String,
+
+    @JsonProperty("down_payments_number")
+    val downPaymentsNumber: BigDecimal
 
 )

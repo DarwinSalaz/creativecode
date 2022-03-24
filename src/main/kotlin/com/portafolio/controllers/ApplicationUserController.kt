@@ -1,7 +1,6 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.ApplicationUserCreateDto
-import com.portafolio.entities.ApplicationUser
 import com.portafolio.mappers.ApplicationUserMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.repositories.RelUserWalletRepository
@@ -74,5 +73,7 @@ class ApplicationUserController {
         return response
     }
 
+    @GetMapping("/application_user")
+    fun getApplicationUsers() = repository.findAll()
 
 }

@@ -43,6 +43,10 @@ data class Expense (
 
     @JsonProperty("justification")
     @Column(name = "justification")
-    var justification: String?
+    var justification: String?,
+
+    @JsonProperty("wallet_id")
+    @Column(name = "wallet_id")
+    var walletId: Int?
 
 )

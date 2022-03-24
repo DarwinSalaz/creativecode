@@ -14,7 +14,7 @@ interface CashControlRepository: JpaRepository<CashControl, Long> {
     fun findActiveCashControlByUser(applicationUserId : Long, active : Boolean = true) : CashControl?
 
     @Modifying
-    @Query("UPDATE CashControl c SET c.cash = ?1, c.revenues = ?2, c.expenses = ?3, c.servicesCount = ?4 where c.cashControlId = ?5")
-    fun updateCashControlValues(cash : BigDecimal, revenues : BigDecimal, expenses : BigDecimal, servicesCount : Int, cashControlId: Long)
+    @Query("UPDATE CashControl c SET c.cash = ?1, c.revenues = ?2, c.expenses = ?3, c.commission = ?4, c.servicesCount = ?5, c.downPayments = ?6 where c.cashControlId = ?7")
+    fun updateCashControlValues(cash : BigDecimal, revenues : BigDecimal, expenses : BigDecimal, commission : BigDecimal, servicesCount : Int, downPayments: BigDecimal, cashControlId: Long)
 
 }

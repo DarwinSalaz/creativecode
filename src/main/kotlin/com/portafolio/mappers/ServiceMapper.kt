@@ -2,9 +2,11 @@ package com.portafolio.mappers
 
 import com.portafolio.dtos.ServiceDto
 import com.portafolio.dtos.ServiceProductDto
+import com.portafolio.dtos.ServiceScheduleResponse
 import com.portafolio.dtos.ServicesByCustomerResponse
 import com.portafolio.entities.Service
 import com.portafolio.entities.ServiceProduct
+import com.portafolio.models.ServiceSchedule
 import com.portafolio.services.Utilities
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -76,6 +78,8 @@ class ServiceMapper {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val createdAt = service.createdAt.toLocalDate().format(formatter)
 
+        log.info("[mapServicesByUser] Mapping service: $service")
+
         val servicesByCustomerResponse = ServicesByCustomerResponse(
             serviceId = service.serviceId,
             applicationUserId = service.applicationUserId,
@@ -96,4 +100,16 @@ class ServiceMapper {
 
         return servicesByCustomerResponse
     }
+
+    fun map(serviceSchedules: List<ServiceSchedule>) =
+        serviceSchedules.map { it ->
+            ServiceScheduleResponse (
+                customerId = it.customerId,
+                name = it.name,
+                lastName = it.lastName,
+                icon = it.icon,
+                feeValue = utilities.currencyFormat(it.feeValue.toString()),
+                nextPaymentDate = it.nextPaymentDate?.toLocalDate()
+            )
+        }
 }

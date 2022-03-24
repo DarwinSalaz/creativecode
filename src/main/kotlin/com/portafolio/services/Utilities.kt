@@ -13,7 +13,7 @@ class Utilities {
 
     val locale = Locale("es", "AR")
 
-    public fun currencyFormat(strNum: String): String {
+    fun currencyFormat(strNum: String): String {
         var currencyFormat: String
         try {
             val numberFormat = NumberFormat.getCurrencyInstance(locale)

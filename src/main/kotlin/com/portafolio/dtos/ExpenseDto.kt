@@ -19,6 +19,9 @@ class ExpenseDto (
     val expenseDate: LocalDateTime,
 
     @JsonProperty("justification")
-    var justification: String?
+    var justification: String?,
+
+    @JsonProperty("wallet_id")
+    var walletId: Int?
 
 )

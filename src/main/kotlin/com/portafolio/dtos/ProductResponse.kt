@@ -8,6 +8,6 @@ data class ProductResponse (
 
     val status: String = "OK",
 
-    val products: List<Product>
+    val products: List<ProductDto>
 
 )

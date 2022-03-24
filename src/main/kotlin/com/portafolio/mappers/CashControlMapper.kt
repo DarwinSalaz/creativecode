@@ -27,7 +27,7 @@ class CashControlMapper {
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val startsDate = cashControl.startsDate.toLocalDate().format(formatter)
         val endsDate = cashControl.endsDate?.toLocalDate()?.format(formatter)
-        val period = startsDate + "/" + (if (endsDate == null) "Actual" else endsDate)
+        val period = startsDate + "/" + (endsDate ?: "Actual")
 
         return CashControlResponse(
             fullName = if (applicationUser.lastName == null) applicationUser.name else applicationUser.name + " " + applicationUser.lastName,
@@ -35,11 +35,16 @@ class CashControlMapper {
             startsDate = cashControl.startsDate,
             revenues = utilities.currencyFormat(cashControl.revenues.toString()),
             expenses = utilities.currencyFormat(cashControl.expenses.toString()),
-            cash = utilities.currencyFormat(cashControl.cash.toString()),
+            cash = utilities.currencyFormat(cashControl.cash.subtract(cashControl.expenses).subtract(cashControl.commission).toString()),
             applicationUserId = cashControl.applicationUserId,
             active = cashControl.active,
             period = period,
-            servicesCount = cashControl.servicesCount
+            servicesCount = cashControl.servicesCount,
+            cashNumber = cashControl.cash,
+            commission = utilities.currencyFormat(cashControl.commission?.toString() ?: "$0"),
+            commissionNumber = cashControl.commission ?: BigDecimal.ZERO,
+            downPayments = utilities.currencyFormat(cashControl.downPayments?.toString() ?: "$0"),
+            downPaymentsNumber = cashControl.downPayments ?: BigDecimal.ZERO
         )
 
     }
