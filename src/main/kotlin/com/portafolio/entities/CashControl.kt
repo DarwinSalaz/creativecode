@@ -45,7 +45,7 @@ data class CashControl (
     var servicesCount: Int,
 
     @Column(name = "commission")
-    var commission: BigDecimal? = null,
+    var commission: BigDecimal,
 
     @Column(name = "closure_user")
     var closureUser: String? = null,

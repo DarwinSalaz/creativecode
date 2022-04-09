@@ -1,10 +1,11 @@
 package com.portafolio.services
 
+import com.portafolio.entities.ApplicationUser
 import com.portafolio.entities.CashControl
 import com.portafolio.entities.CashMovement
 import com.portafolio.entities.Payment
-import com.portafolio.entities.PaymentSchedule
 import com.portafolio.repositories.CashMovementRepository
+import com.portafolio.repositories.CustomerRepository
 import com.portafolio.repositories.PaymentRepository
 import com.portafolio.repositories.ServiceRepository
 import org.slf4j.LoggerFactory
@@ -23,27 +24,42 @@ class PaymentService {
     private lateinit var repository: PaymentRepository
 
     @Autowired
-    private lateinit var serviceRepository: ServiceRepository
+    private lateinit var customerRepository: CustomerRepository
 
     @Autowired
     private lateinit var cashControlService: CashControlService
 
     @Autowired
+    private lateinit var servicesService: ServicesService
+
+    @Autowired
     private lateinit var cashMovementRepository: CashMovementRepository
+
+    @Transactional
+    fun savePayment(serviceId: Long, value: BigDecimal, applicationUser: ApplicationUser): Payment {
+        val payment = Payment(
+            applicationUser = applicationUser,
+            serviceId = serviceId,
+            value = value,
+            createdAt = LocalDateTime.now()
+        )
+
+        return repository.save(payment)
+    }
 
     @Transactional
     fun save(payment: Payment, nextPaymentDate: LocalDateTime?) : Payment {
 
         //validate if the user has an active cash control
-        val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(payment.applicationUserId)
+        val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
         val cashControlId: Long
         val commission = payment.value.multiply(0.12.toBigDecimal())
 
-        if(activeCashControl == null) {
+        if (activeCashControl == null) {
             val cashControl = CashControl(
-                applicationUserId = payment.applicationUserId,
+                applicationUserId = payment.applicationUser.applicationUserId,
                 active = true,
-                cash = payment.value,
+                cash = payment.value.subtract(commission),
                 expenses = BigDecimal.ZERO,
                 commission = commission,
                 revenues = payment.value,
@@ -55,24 +71,26 @@ class PaymentService {
 
             cashControlId = cashControlSaved.cashControlId
         } else {
-            cashControlService.updateValueForInputCash(activeCashControl, payment.value)
+            cashControlService.updateValueForInputCash(activeCashControl, payment.value, commission, BigDecimal.ZERO, false)
 
             cashControlId = activeCashControl.cashControlId
         }
 
-        serviceRepository.updateDebtService(payment.value, nextPaymentDate, payment.serviceId)
+        val customerName = servicesService.updateServiceForPayment(payment.serviceId, payment.value, nextPaymentDate)
 
         val paymentSaved = repository.save(payment)
 
         val cashMovement = CashMovement(
             cashMovementType = "fee_payment",
             movementType = "IN",
-            applicationUserId = payment.applicationUserId,
+            applicationUserId = payment.applicationUser.applicationUserId,
             paymentId = paymentSaved.paymentId,
-            value = payment.value,
-            description = null,
+            serviceId = paymentSaved.serviceId,
+            value = payment.value.subtract(commission),
+            description = customerName,
             cashControlId = cashControlId,
-            commission = commission
+            commission = commission,
+            downPayments = BigDecimal.ZERO
         )
 
         cashMovementRepository.save(cashMovement)

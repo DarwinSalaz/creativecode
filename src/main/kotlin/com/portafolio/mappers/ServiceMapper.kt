@@ -1,12 +1,11 @@
 package com.portafolio.mappers
 
-import com.portafolio.dtos.ServiceDto
-import com.portafolio.dtos.ServiceProductDto
-import com.portafolio.dtos.ServiceScheduleResponse
-import com.portafolio.dtos.ServicesByCustomerResponse
+import com.portafolio.dtos.*
 import com.portafolio.entities.Service
 import com.portafolio.entities.ServiceProduct
 import com.portafolio.models.ServiceSchedule
+import com.portafolio.repositories.PaymentRepository
+import com.portafolio.repositories.ProductRepository
 import com.portafolio.services.Utilities
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,6 +18,12 @@ class ServiceMapper {
 
     @Autowired
     lateinit var utilities: Utilities
+
+    @Autowired
+    lateinit var productRepository: ProductRepository
+
+    @Autowired
+    lateinit var paymentRepository: PaymentRepository
 
     fun map(serviceDto: ServiceDto, applicationUserId: Long): Service {
         val service = Service(
@@ -95,8 +100,25 @@ class ServiceMapper {
             feeValue = utilities.currencyFormat(service.feeValue.toString()),
             quantityOfFees = service.quantityOfFees,
             daysPerFee = service.daysPerFee,
-            debtInNumber = service.debt
+            debtInNumber = service.debt,
+            observations = service.observations,
+            pendingValue = service.pendingValue?.let { utilities.currencyFormat(service.pendingValue.toString()) }
         )
+
+        servicesByCustomerResponse.serviceProducts = service.serviceProducts
+            .filter { it.enabled }
+            .map {
+                val product = productRepository.findById(it.productId).orElse(null)
+                ServiceProductDto(productId = it.productId, value = it.value, quantity = it.quantity, name = product?.name)
+            }.toMutableList()
+
+        servicesByCustomerResponse.payments = paymentRepository
+            .findAllPaymentsByServiceId(serviceId = service.serviceId)?.map { payment ->
+                PaymentResumeDto(
+                    value = utilities.currencyFormat(payment.value.toPlainString()),
+                    username = payment.applicationUser.username,
+                    createdAt = payment.createdAt.toLocalDate().format(formatter)
+                )} ?: emptyList()
 
         return servicesByCustomerResponse
     }

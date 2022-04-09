@@ -26,14 +26,17 @@ data class ServiceProduct (
     val value: BigDecimal = BigDecimal.valueOf(0),
 
     @Column(name = "quantity")
-    val quantity: Int = 0
+    val quantity: Int = 1,
+
+    @Column(name = "enabled")
+    var enabled: Boolean = true
 
 )
 
 data class ServiceProductPrimaryKey(
 
-    val productId: Long = 0,
+    var productId: Long = 0,
 
-    val service: Service = Service()
+    var service: Service = Service()
 
 ) : Serializable

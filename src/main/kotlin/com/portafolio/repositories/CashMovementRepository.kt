@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository
 @Repository
 interface CashMovementRepository: JpaRepository<CashMovement, Long> {
 
-    @Query("SELECT c FROM CashMovement c WHERE c.cashControlId = ?1")
+    @Query("SELECT c FROM CashMovement c WHERE c.cashControlId = ?1 ORDER BY c.createdAt DESC")
     fun findCashMovementsByCashControlId(cashControlId: Long): List<CashMovement>
 
 }

@@ -6,9 +6,11 @@ import com.portafolio.mappers.PaymentMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.PaymentService
+import com.portafolio.services.ServicesService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import java.math.BigDecimal
 import javax.validation.Valid
 
 @Validated
@@ -18,6 +20,9 @@ class PaymentController {
 
     @Autowired
     lateinit var service: PaymentService
+
+    @Autowired
+    lateinit var servicesService: ServicesService
 
     @Autowired
     lateinit var applicationUserService: ApplicationUserService
@@ -30,7 +35,7 @@ class PaymentController {
 
     @PostMapping("/payment/create")
     fun registerPayment(@Valid @RequestBody paymentDto : PaymentDto,
-                        @RequestHeader("Authorization") authorization: String) : Payment? {
+                        @RequestHeader("Authorization") authorization: String) : Map<String, Long>? {
 
         val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
         val applicationUsername : String = applicationUserService.verifyToken(token)
@@ -38,11 +43,16 @@ class PaymentController {
 
         user ?: return null
 
+        if (paymentDto.value.compareTo(BigDecimal.ZERO) == 0) {
+            servicesService.updateNextPaymentDate(paymentDto.nextPaymentDate, paymentDto.serviceId)
+            return mapOf("payment_id" to 0.toLong())
+        }
+
         paymentDto.applicationUserId = user.applicationUserId
 
-        val payment = mapper.map(paymentDto)
+        val payment = service.save(mapper.map(paymentDto), paymentDto.nextPaymentDate)
 
-        return service.save(payment, paymentDto.nextPaymentDate)
+        return mapOf("payment_id" to payment.paymentId)
     }
 
 }

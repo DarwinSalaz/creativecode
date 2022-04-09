@@ -1,6 +1,7 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.ExpenseDto
+import com.portafolio.dtos.ExpenseResumeDto
 import com.portafolio.dtos.PaymentDto
 import com.portafolio.entities.Expense
 import com.portafolio.mappers.ExpenseMapper
@@ -43,6 +44,14 @@ class ExpenseController {
         val expense = mapper.map(expenseDto)
 
         return service.save(expense)
+    }
+
+    @GetMapping("/expenses-by-user/{username}")
+    fun getExpenses(@PathVariable("username") username: String) : List<ExpenseResumeDto>{
+        val user = applicationUserRepository.findByUsername(username)
+        val expenses = service.getExpenses(user!!.applicationUserId)
+
+        return expenses?.map { mapper.mapReverse(it) } ?: emptyList()
     }
 
 }

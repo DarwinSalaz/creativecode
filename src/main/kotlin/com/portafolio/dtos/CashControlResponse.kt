@@ -56,6 +56,9 @@ data class CashControlResponse (
     val downPayments: String,
 
     @JsonProperty("down_payments_number")
-    val downPaymentsNumber: BigDecimal
+    val downPaymentsNumber: BigDecimal,
+
+    @JsonProperty("movements")
+    val movements: List<CashMovementDto>? = null
 
 )

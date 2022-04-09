@@ -10,6 +10,8 @@ data class ServiceProductDto (
 
     val value: BigDecimal,
 
-    val quantity: Int
+    val quantity: Int = 1,
+
+    val name: String? = null
 
 )

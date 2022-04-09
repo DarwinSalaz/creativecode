@@ -21,15 +21,17 @@ data class Product (
 
     @NotNull
     @Column(name = "name")
-    val name: String,
+    var name: String,
 
-    @NotNull
     @Column(name = "description")
-    val description: String,
+    var description: String?,
 
     @NotNull
     @Column(name = "value")
-    val value: BigDecimal,
+    var value: BigDecimal,
+
+    @Column(name = "cost")
+    var cost: BigDecimal = BigDecimal.ZERO,
 
     @ManyToOne(fetch= FetchType.LAZY, cascade= [CascadeType.PERSIST])
     @JoinColumn(name = "wallet_id")

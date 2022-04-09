@@ -48,4 +48,8 @@ data class ApplicationUser (
     @JsonProperty("created_at")
     val createdAt: LocalDateTime = LocalDateTime.now()
 
-)
+) {
+
+    fun isSalesman() = userProfileId in listOf(1, 3)
+
+}

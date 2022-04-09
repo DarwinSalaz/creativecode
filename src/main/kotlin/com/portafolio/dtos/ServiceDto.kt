@@ -47,6 +47,9 @@ data class ServiceDto (
     @JsonProperty("fee_value")
     val feeValue: BigDecimal = BigDecimal.valueOf(0),
 
+    @JsonProperty("initial_payment")
+    val initialPayment: BigDecimal? = BigDecimal.valueOf(0),
+
     @field:NotNull(message = "walletId is notNull")
     @JsonProperty("wallet_id")
     val walletId: Int,

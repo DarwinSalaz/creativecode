@@ -84,4 +84,8 @@ class CashControlController {
         return ResponseEntity.ok().body(hashMapOf("ok" to "true"))
     }
 
+    @GetMapping("/cash_control/movements/{id_cash_control}")
+    fun getCashMovements(@PathVariable("id_cash_control") idCashControl: Long)
+        = service.getCashControlMovements(idCashControl)
+
 }

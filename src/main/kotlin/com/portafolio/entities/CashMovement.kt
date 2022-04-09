@@ -29,7 +29,11 @@ data class CashMovement(
 
     @JsonProperty("payment_id")
     @Column(name = "payment_id")
-    var paymentId: Long,
+    var paymentId: Long?,
+
+    @JsonProperty("service_id")
+    @Column(name = "service_id")
+    var serviceId: Long?,
 
     @JsonProperty("value")
     @Column(name = "value")
@@ -45,7 +49,11 @@ data class CashMovement(
 
     @JsonProperty("commission")
     @Column(name = "commission")
-    var commission: BigDecimal?,
+    var commission: BigDecimal,
+
+    @JsonProperty("down_payments")
+    @Column(name = "down_payments")
+    var downPayments: BigDecimal? = BigDecimal.ZERO,
 
     @JsonProperty("created_at")
     @Column(name = "created_at")

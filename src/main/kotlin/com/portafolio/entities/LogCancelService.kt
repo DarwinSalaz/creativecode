@@ -1,33 +1,35 @@
 package com.portafolio.entities
 
 import com.fasterxml.jackson.annotation.JsonProperty
-import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import javax.persistence.*
 
-@Table(name = "payments")
+@Table(name = "log_cancel_service")
 @Entity
-data class Payment (
+data class LogCancelService(
 
     @Id
-    @JsonProperty("payment_id")
+    @JsonProperty("log_cancel_service_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "payment_id")
-    val paymentId: Long = 0,
+    @Column(name = "log_cancel_service_id")
+    val logCancelServiceId: Long = 0,
 
     @JsonProperty("application_user_id")
-    @ManyToOne(fetch= FetchType.LAZY, cascade= [CascadeType.PERSIST])
-    @JoinColumn(name = "application_user_id")
-    var applicationUser: ApplicationUser,
+    @Column(name = "application_user_id")
+    var applicationUserId: Long,
 
     @JsonProperty("service_id")
     @Column(name = "service_id")
-    val serviceId: Long = 0,
+    var serviceId: Long,
 
-    @JsonProperty("value")
-    @Column(name = "value")
-    val value: BigDecimal = BigDecimal.ZERO,
+    @JsonProperty("product_ids")
+    @Column(name = "product_ids")
+    var productIds: String,
+
+    @JsonProperty("complete_cancellation")
+    @Column(name = "complete_cancellation")
+    var completeCancellation: Boolean,
 
     @JsonProperty("created_at")
     @Column(name = "created_at")

@@ -1,9 +1,6 @@
 package com.portafolio.controllers
 
-import com.portafolio.dtos.ServiceDto
-import com.portafolio.dtos.ServiceScheduleResponse
-import com.portafolio.dtos.ServicesByCustomerResponse
-import com.portafolio.dtos.WalletRequest
+import com.portafolio.dtos.*
 import com.portafolio.entities.Service
 import com.portafolio.mappers.ServiceMapper
 import com.portafolio.repositories.ApplicationUserRepository
@@ -52,7 +49,7 @@ class ServiceController {
 
         user ?: return null
 
-        return service.save(mapper.map(serviceDto, user.applicationUserId))
+        return service.save(mapper.map(serviceDto, user.applicationUserId), user, serviceDto.initialPayment)
     }
 
     @ExceptionHandler(JwtException::class)
@@ -94,6 +91,22 @@ class ServiceController {
         }
 
         return if (services != null) mapper.map(services) else listOf()
+    }
+
+    @PostMapping("/service/cancel_service")
+    fun cancelService(
+        @Valid @RequestBody cancelServiceRequest: CancelServiceRequest,
+        @RequestHeader("Authorization") authorization: String): ResponseEntity<Map<String, String>>
+    {
+        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+        val applicationUsername : String = applicationUserService.verifyToken(token)
+        val user = applicationUserRepository.findByUsername(applicationUsername)
+
+        user ?: return ResponseEntity(mapOf("code" to "error", "message" to "fail"), HttpStatus.BAD_REQUEST)
+
+        service.cancelService(cancelServiceRequest, user.applicationUserId)
+
+        return ResponseEntity(mapOf("code" to "ok", "message" to "success"), HttpStatus.OK)
     }
 
 }

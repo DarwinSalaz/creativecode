@@ -1,16 +1,14 @@
 package com.portafolio.services
 
-import com.portafolio.entities.CashControl
-import com.portafolio.entities.CashMovement
-import com.portafolio.entities.Service
+import com.portafolio.dtos.CancelServiceRequest
+import com.portafolio.entities.*
 import com.portafolio.models.ServiceSchedule
-import com.portafolio.repositories.CashMovementRepository
-import com.portafolio.repositories.ProductRepository
-import com.portafolio.repositories.ServiceRepository
+import com.portafolio.repositories.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import javax.transaction.Transactional
 
 @org.springframework.stereotype.Service
 class ServicesService {
@@ -28,10 +26,20 @@ class ServicesService {
     @Autowired
     private lateinit var cashMovementRepository: CashMovementRepository
 
+    @Autowired
+    private lateinit var customerRepository: CustomerRepository
+
+    @Autowired
+    private lateinit var logCancelServiceRepository: LogCancelServiceRepository
+
+    @Autowired
+    private lateinit var paymentService: PaymentService
+
     //@Autowired
     //private lateinit var paymentScheduleRepository: PaymentScheduleRepository
 
-    fun save(service: Service) : Service {
+    @Transactional
+    fun save(service: Service, applicationUser: ApplicationUser, initialPayment: BigDecimal?) : Service {
 
         //validate if the user has an active cash control
         val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(service.applicationUserId)
@@ -41,11 +49,11 @@ class ServicesService {
             val cashControl = CashControl(
                 applicationUserId = service.applicationUserId,
                 active = true,
-                cash = service.downPayment,
+                cash = BigDecimal.ZERO.add(initialPayment ?: BigDecimal.ZERO),
                 expenses = BigDecimal.ZERO,
-                revenues = service.downPayment,
+                revenues = service.downPayment.add(initialPayment ?: BigDecimal.ZERO),
                 startsDate = LocalDateTime.now(),
-                commission = service.downPayment,
+                commission = BigDecimal.ZERO,
                 servicesCount = 1,
                 downPayments = service.downPayment
             )
@@ -54,7 +62,7 @@ class ServicesService {
 
             cashControlId = cashControlSaved.cashControlId
         } else {
-            cashControlService.updateValueForInputCash(activeCashControl, service.downPayment, true)
+            cashControlService.updateValueForInputCash(activeCashControl, service.downPayment.add(initialPayment ?: BigDecimal.ZERO), BigDecimal.ZERO, service.downPayment, true)
 
             cashControlId = activeCashControl.cashControlId
         }
@@ -71,18 +79,28 @@ class ServicesService {
 
         val serviceSaved = repository.save(service)
 
+        val payment = if (initialPayment != null && initialPayment >= BigDecimal.ZERO) {
+            paymentService.savePayment(serviceSaved.serviceId, initialPayment, applicationUser)
+        } else null
+
+        val customer = customerRepository.findById(serviceSaved.customerId).get()
+
         val cashMovement = CashMovement(
             cashMovementType = "new_service",
             movementType = "IN",
             applicationUserId = service.applicationUserId,
-            paymentId = serviceSaved.serviceId,
-            value = service.downPayment,
-            description = null,
+            paymentId = payment?.paymentId,
+            serviceId = serviceSaved.serviceId,
+            value = initialPayment ?: BigDecimal.ZERO,
+            description = customer.name + if (customer.lastName != null) " " + customer.lastName else "",
             cashControlId = cashControlId,
-            commission = service.downPayment
+            commission = BigDecimal.ZERO,
+            downPayments = service.downPayment
         )
 
         cashMovementRepository.save(cashMovement)
+
+
 
         /*if (service.nextPaymentDate != null) {
             val paymentSchedule = PaymentSchedule (
@@ -114,7 +132,100 @@ class ServicesService {
     fun findServiceSchedule(walletIds: List<Int>) : List<ServiceSchedule>? {
         return if (walletIds.isNotEmpty())
             repository.findServicesSchedule(walletIds)
-        else
-            repository.findServicesSchedule()
+        else {
+            val services = repository.findServicesSchedule()
+
+            /*services?.groupBy { it.customerId }?.map {
+                    ServiceSchedule(
+                        customerId = it.key,
+                        name = it.value[0].name,
+                        lastName = it.value[0].lastName,
+                        icon = it.value[0].icon,
+                        feeValue = it.value.map { s -> s.feeValue }.fold (BigDecimal.ZERO) { a, b -> a.add(b) },
+                        nextPaymentDate = it.value[0].nextPaymentDate
+                    )
+                }*/
+            services
+
+        }
+
+    }
+
+    fun cancelService(cancelServiceRequest: CancelServiceRequest, applicationUserId: Long) {
+        val service = repository.findById(cancelServiceRequest.serviceId).get()
+        val serviceProducts = service.serviceProducts
+        val productIdsToCancel = cancelServiceRequest.productIds
+
+        serviceProducts.filter { productIdsToCancel.contains(it.productId) }
+            .forEach { it.enabled = false }
+
+        service.debt = service.debt.subtract(cancelServiceRequest.discount)
+        service.discount = service.discount.add(cancelServiceRequest.discount)
+        service.totalValue = service.totalValue.subtract(cancelServiceRequest.discount)
+        service.observations = if(service.observations != null)
+            service.observations + "\n - Proceso de cancelación de productos aplicado a este servicio"
+        else null
+
+        if (service.debt.compareTo(BigDecimal.ZERO) == 0) {
+            service.state = "canceled"
+        }
+
+        repository.save(service)
+
+        saveLogCancelService(cancelServiceRequest, applicationUserId, service.state == "canceled")
+    }
+
+    fun saveLogCancelService(cancelServiceRequest: CancelServiceRequest, applicationUserId: Long, completeCancellation: Boolean) {
+        val logCancelService = LogCancelService(
+            applicationUserId = applicationUserId,
+            serviceId = cancelServiceRequest.serviceId,
+            productIds = cancelServiceRequest.productIds.toString(),
+            completeCancellation = completeCancellation
+        )
+
+        logCancelServiceRepository.save(logCancelService)
+    }
+
+    @Transactional
+    fun updateServiceForPayment(serviceId: Long, value: BigDecimal, nextPaymentDate: LocalDateTime?) : String{
+        val service = repository.findById(serviceId).get()
+
+        service.debt = service.debt - value
+        service.nextPaymentDate = nextPaymentDate
+        service.state = if (service.debt.compareTo(BigDecimal.ZERO) == 0) "fully_paid" else "paying"
+
+        service.pendingValue = getPendingValue(value, service.pendingValue, service.feeValue, service.state)
+
+        repository.save(service)
+
+        val customer = customerRepository.findById(service.customerId).get()
+
+        return customer.name + if (customer.lastName != null) " " + customer.lastName else ""
+    }
+
+    @Transactional
+    fun updateNextPaymentDate(nextPaymentDate: LocalDateTime?, serviceId: Long) {
+        repository.updateNextPaymentDateService(nextPaymentDate, serviceId)
+    }
+
+    fun getPendingValue(value: BigDecimal, pendingValue: BigDecimal?, feeValue: BigDecimal, state: String): BigDecimal? {
+        val hasPendingValue = pendingValue != null
+        val isPendingValue = hasPendingValue && ( value.compareTo(pendingValue) == 0 || pendingValue!!.add(feeValue).compareTo(value) == 0 )
+
+        return if (!hasPendingValue && value < feeValue) {
+            feeValue - value
+        } else if (state == "fully_paid" || isPendingValue) {
+            null
+        } else if (hasPendingValue && value < pendingValue) {
+            pendingValue!!.subtract(value)
+        } else if (hasPendingValue && value > pendingValue && value < feeValue) {
+            feeValue.subtract(value.subtract(pendingValue))
+        } else if (hasPendingValue && value > feeValue && value < feeValue.add(pendingValue)) {
+            feeValue.add(pendingValue).subtract(value)
+        } else if (hasPendingValue && value > feeValue.add(pendingValue)) {
+            null
+        } else {
+            pendingValue
+        }
     }
 }

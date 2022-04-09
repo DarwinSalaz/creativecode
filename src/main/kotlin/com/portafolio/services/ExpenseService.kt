@@ -37,7 +37,8 @@ class ExpenseService {
                 expenses = expense.value,
                 revenues = BigDecimal.ZERO,
                 startsDate = LocalDateTime.now(),
-                servicesCount = 1
+                servicesCount = 1,
+                commission = BigDecimal.ZERO
             )
 
             val cashControlSaved = cashControlService.save(cashControl)
@@ -56,14 +57,18 @@ class ExpenseService {
             movementType = "OUT",
             applicationUserId = expense.applicationUserId,
             paymentId = expenseSaved.expenseId,
+            serviceId = null,
             value = expense.value,
-            description = expense.justification,
+            description = expense.expenseType,
             cashControlId = cashControlId,
-            commission = BigDecimal.ZERO
+            commission = BigDecimal.ZERO,
+            downPayments = BigDecimal.ZERO
         )
 
         cashMovementRepository.save(cashMovement)
 
         return expense
     }
+
+    fun getExpenses(applicationUserId: Long) = repository.getExpenses(applicationUserId)
 }

@@ -24,13 +24,13 @@ data class Service (
     val downPayment: BigDecimal = BigDecimal.valueOf(0),
 
     @Column(name = "discount")
-    val discount: BigDecimal = BigDecimal.valueOf(0),
+    var discount: BigDecimal = BigDecimal.valueOf(0),
 
     @Column(name = "total_value")
-    val totalValue: BigDecimal = BigDecimal.valueOf(0),
+    var totalValue: BigDecimal = BigDecimal.valueOf(0),
 
     @Column(name = "debt")
-    val debt: BigDecimal = BigDecimal.valueOf(0),
+    var debt: BigDecimal = BigDecimal.valueOf(0),
 
     @Column(name = "days_per_fee")
     val daysPerFee: Int = 0,
@@ -53,13 +53,16 @@ data class Service (
     @Column(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
 
-    val state: String = "",
+    var state: String = "",
 
     @Column(name = "observations")
-    val observations: String? = null,
+    var observations: String? = null,
 
     @Column(name = "next_payment_date")
-    val nextPaymentDate: LocalDateTime? = null
+    var nextPaymentDate: LocalDateTime? = null,
+
+    @Column(name = "pending_value")
+    var pendingValue: BigDecimal? = null
 
 ) {
     @JsonProperty("service_products")

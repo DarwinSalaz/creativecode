@@ -1,6 +1,5 @@
 package com.portafolio.dtos
 
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
@@ -49,6 +48,18 @@ data class ServicesByCustomerResponse (
     @JsonProperty("created_at")
     val createdAt: String,
 
-    val state: String = "CREATED"
+    val state: String = "CREATED",
+
+    @JsonProperty("observations")
+    val observations: String? = null,
+
+    @JsonProperty("pending_value")
+    var pendingValue: String?,
+
+    @JsonProperty("payments")
+    var payments: List<PaymentResumeDto> = mutableListOf(),
+
+    @JsonProperty("service_products")
+    var serviceProducts: MutableList<ServiceProductDto> = mutableListOf()
 
 )
