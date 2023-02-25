@@ -76,7 +76,9 @@ class PaymentService {
             cashControlId = activeCashControl.cashControlId
         }
 
-        val customerName = servicesService.updateServiceForPayment(payment.serviceId, payment.value, nextPaymentDate)
+        val service = servicesService.updateServiceForPayment(payment.serviceId, payment.value, nextPaymentDate)
+        val customer = customerRepository.findById(service.customerId).get()
+        val customerName = customer.name + if (customer.lastName != null) " " + customer.lastName else ""
 
         val paymentSaved = repository.save(payment)
 
@@ -90,7 +92,8 @@ class PaymentService {
             description = customerName,
             cashControlId = cashControlId,
             commission = commission,
-            downPayments = BigDecimal.ZERO
+            downPayments = BigDecimal.ZERO,
+            walletId = service.walletId
         )
 
         cashMovementRepository.save(cashMovement)

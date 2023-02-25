@@ -19,10 +19,10 @@ interface ServiceRepository: JpaRepository<Service, Long> {
     @Query("UPDATE Service s SET s.debt = s.debt - ?1, s.nextPaymentDate = ?2 where s.serviceId = ?3")
     fun updateDebtService(value : BigDecimal, nextPaymentDate: LocalDateTime?, serviceId: Long)
 
-    @Query("SELECT new com.portafolio.models.ServiceSchedule(c.customerId, c.name, c.lastName, c.icon, s.feeValue, s.nextPaymentDate) FROM Service s INNER JOIN Customer c ON (s.customerId = c.customerId) WHERE c.walletId in ?1 and s.state in ('created', 'paying')")
+    @Query("SELECT new com.portafolio.models.ServiceSchedule(c.customerId, c.name, c.lastName, c.icon, s.feeValue, s.nextPaymentDate, s.hasExpiredPayment) FROM Service s INNER JOIN Customer c ON (s.customerId = c.customerId) WHERE c.walletId in ?1 and s.state in ('created', 'paying')")
     fun findServicesSchedule(walletIds: List<Int>) : List<ServiceSchedule>?
 
-    @Query("SELECT new com.portafolio.models.ServiceSchedule(c.customerId, c.name, c.lastName, c.icon, s.feeValue, s.nextPaymentDate) FROM Service s INNER JOIN Customer c ON (s.customerId = c.customerId) WHERE s.state in ('created', 'paying')")
+    @Query("SELECT new com.portafolio.models.ServiceSchedule(c.customerId, c.name, c.lastName, c.icon, s.feeValue, s.nextPaymentDate, s.hasExpiredPayment) FROM Service s INNER JOIN Customer c ON (s.customerId = c.customerId) WHERE s.state in ('created', 'paying')")
     fun findServicesSchedule() : List<ServiceSchedule>?
 
     @Modifying

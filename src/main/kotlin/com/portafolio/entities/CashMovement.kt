@@ -55,6 +55,14 @@ data class CashMovement(
     @Column(name = "down_payments")
     var downPayments: BigDecimal? = BigDecimal.ZERO,
 
+    @JsonProperty("justification")
+    @Column(name = "justification")
+    var justification: String? = null,
+
+    @JsonProperty("wallet_id")
+    @Column(name = "wallet_id")
+    var walletId: Int,
+
     @JsonProperty("created_at")
     @Column(name = "created_at")
     var createdAt: LocalDateTime = LocalDateTime.now()

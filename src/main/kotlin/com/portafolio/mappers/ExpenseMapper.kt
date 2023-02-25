@@ -2,6 +2,7 @@ package com.portafolio.mappers
 
 import com.portafolio.dtos.ExpenseDto
 import com.portafolio.dtos.ExpenseResumeDto
+import com.portafolio.entities.CashMovement
 import com.portafolio.entities.Expense
 import com.portafolio.services.Utilities
 import org.springframework.beans.factory.annotation.Autowired
@@ -26,12 +27,12 @@ class ExpenseMapper {
             walletId = expenseDto.walletId
         )
 
-    fun mapReverse(expense: Expense) =
+    fun mapReverse(cashMovement: CashMovement) =
         ExpenseResumeDto(
-            expenseType = expense.expenseType,
-            value = utilities.currencyFormat(expense.value.toPlainString()),
-            expenseDate = expense.expenseDate.format(formatter),
-            justification = expense.justification
+            expenseType = cashMovement.description ?: "",
+            value = utilities.currencyFormat(cashMovement.value.toPlainString()),
+            expenseDate = cashMovement.createdAt.format(formatter),
+            justification = cashMovement.justification
         )
 
 }

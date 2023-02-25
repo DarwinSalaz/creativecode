@@ -22,6 +22,9 @@ data class ServiceSchedule(
     val feeValue: BigDecimal?,
 
     @JsonProperty("next_payment_date")
-    val nextPaymentDate: LocalDateTime?
+    val nextPaymentDate: LocalDateTime?,
+
+    @JsonProperty("has_expired_payment")
+    var hasExpiredPayment: Boolean? = false
 
 )

@@ -47,6 +47,17 @@ class CashControlController {
         return cashControlMapper.map(service.findActiveCashControlByUser(user.applicationUserId), user)
     }
 
+    @GetMapping("/cash_control/history")
+    fun getCashControlHistory(@RequestParam("username") usernameParam: String) : List<CashControlResponse>? {
+        val user = applicationUserRepository.findByUsername(usernameParam)
+
+        user ?: return null
+
+        val cashControls = service.findHistoryCashControlByUser(user.applicationUserId)
+
+        return cashControls?.map { cashControlMapper.map(it, user) } ?: listOf()
+    }
+
     @GetMapping("/cash_control/daily")
     fun getDailyCashControl(@RequestHeader("Authorization", required = false) authorization: String?,
                              @RequestParam("username", required = false) usernameParam: String?): CashControlResponse? {

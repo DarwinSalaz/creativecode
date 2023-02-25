@@ -19,9 +19,7 @@ class CashControlMapper {
 
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
-    fun map(cashControl: CashControl?, applicationUser: ApplicationUser) : CashControlResponse? {
-
-        if (cashControl == null) return null
+    fun map(cashControl: CashControl, applicationUser: ApplicationUser) : CashControlResponse {
 
         val startsDate = cashControl.startsDate.toLocalDate().format(formatter)
         val endsDate = cashControl.endsDate?.toLocalDate()?.format(formatter)

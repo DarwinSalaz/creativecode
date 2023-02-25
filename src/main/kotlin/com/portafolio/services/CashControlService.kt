@@ -64,7 +64,9 @@ class CashControlService {
         return repository.updateCashControlValues(cash, revenues, expenses, commissions, servicesCount, downPayments, cashControl.cashControlId)
     }
 
-    fun findActiveCashControlByUser(applicationUserId : Long) : CashControl? {
+    fun findHistoryCashControlByUser(applicationUserId : Long) = repository.findHistoryCashControlByUser(applicationUserId)
+
+    fun findActiveCashControlByUser(applicationUserId : Long) : CashControl {
 
         var cashControl = repository.findActiveCashControlByUser(applicationUserId)
 

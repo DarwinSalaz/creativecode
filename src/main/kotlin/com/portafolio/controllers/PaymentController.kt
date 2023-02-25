@@ -43,10 +43,10 @@ class PaymentController {
 
         user ?: return null
 
-        if (paymentDto.value.compareTo(BigDecimal.ZERO) == 0) {
+        /*if (paymentDto.value.compareTo(BigDecimal.ZERO) == 0) {
             servicesService.updateNextPaymentDate(paymentDto.nextPaymentDate, paymentDto.serviceId)
             return mapOf("payment_id" to 0.toLong())
-        }
+        }*/
 
         paymentDto.applicationUserId = user.applicationUserId
 

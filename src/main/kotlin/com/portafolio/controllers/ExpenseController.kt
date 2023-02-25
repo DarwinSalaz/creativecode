@@ -46,12 +46,13 @@ class ExpenseController {
         return service.save(expense)
     }
 
-    @GetMapping("/expenses-by-user/{username}")
-    fun getExpenses(@PathVariable("username") username: String) : List<ExpenseResumeDto>{
-        val user = applicationUserRepository.findByUsername(username)
-        val expenses = service.getExpenses(user!!.applicationUserId)
+    @GetMapping("/expenses-by-control/{cash_control_id}")
+    fun getExpenses(@PathVariable("cash_control_id") cashControlId: Long) : List<ExpenseResumeDto>{
+        //val user = applicationUserRepository.findByUsername(username)
+        //val expenses = service.getExpenses(user!!.applicationUserId)
+        val expenses = service.getExpensesByControlId(cashControlId)
 
-        return expenses?.map { mapper.mapReverse(it) } ?: emptyList()
+        return expenses.map { mapper.mapReverse(it) } ?: emptyList()
     }
 
 }

@@ -62,7 +62,10 @@ data class Service (
     var nextPaymentDate: LocalDateTime? = null,
 
     @Column(name = "pending_value")
-    var pendingValue: BigDecimal? = null
+    var pendingValue: BigDecimal? = null,
+
+    @Column(name = "has_expired_payment")
+    var hasExpiredPayment: Boolean? = false
 
 ) {
     @JsonProperty("service_products")

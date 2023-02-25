@@ -44,16 +44,18 @@ class ServicesService {
         //validate if the user has an active cash control
         val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(service.applicationUserId)
         val cashControlId: Long
+        val commission = initialPayment?.multiply(0.12.toBigDecimal())?.setScale(2) ?: BigDecimal.ZERO
+        val deposit = initialPayment?.subtract(commission)?.setScale(2) ?: BigDecimal.ZERO
 
         if(activeCashControl == null) {
             val cashControl = CashControl(
                 applicationUserId = service.applicationUserId,
                 active = true,
-                cash = BigDecimal.ZERO.add(initialPayment ?: BigDecimal.ZERO),
+                cash = BigDecimal.ZERO.add(deposit),
                 expenses = BigDecimal.ZERO,
-                revenues = service.downPayment.add(initialPayment ?: BigDecimal.ZERO),
+                revenues = service.downPayment.add(deposit),
                 startsDate = LocalDateTime.now(),
-                commission = BigDecimal.ZERO,
+                commission = commission,
                 servicesCount = 1,
                 downPayments = service.downPayment
             )
@@ -62,7 +64,7 @@ class ServicesService {
 
             cashControlId = cashControlSaved.cashControlId
         } else {
-            cashControlService.updateValueForInputCash(activeCashControl, service.downPayment.add(initialPayment ?: BigDecimal.ZERO), BigDecimal.ZERO, service.downPayment, true)
+            cashControlService.updateValueForInputCash(activeCashControl, service.downPayment.add(deposit ?: BigDecimal.ZERO), commission, service.downPayment, true)
 
             cashControlId = activeCashControl.cashControlId
         }
@@ -70,17 +72,17 @@ class ServicesService {
         // Update product left quantity
         service.serviceProducts.forEach { p ->
             val product = productRepository.findById(p.productId).orElse(null)
-            var leftQuantity = product?.leftQuantity ?: 0
-            if (product != null && leftQuantity > 0) {
-                product.leftQuantity = --leftQuantity
+            val leftQuantity = product?.leftQuantity ?: 0
+            if (product != null && leftQuantity > 0 && p.quantity > 0) {
+                product.leftQuantity = leftQuantity - p.quantity
                 productRepository.save(product)
             }
         }
 
         val serviceSaved = repository.save(service)
 
-        val payment = if (initialPayment != null && initialPayment >= BigDecimal.ZERO) {
-            paymentService.savePayment(serviceSaved.serviceId, initialPayment, applicationUser)
+        val payment = if (deposit != null && deposit >= BigDecimal.ZERO) {
+            paymentService.savePayment(serviceSaved.serviceId, deposit, applicationUser)
         } else null
 
         val customer = customerRepository.findById(serviceSaved.customerId).get()
@@ -91,11 +93,12 @@ class ServicesService {
             applicationUserId = service.applicationUserId,
             paymentId = payment?.paymentId,
             serviceId = serviceSaved.serviceId,
-            value = initialPayment ?: BigDecimal.ZERO,
+            value = deposit ?: BigDecimal.ZERO,
             description = customer.name + if (customer.lastName != null) " " + customer.lastName else "",
             cashControlId = cashControlId,
-            commission = BigDecimal.ZERO,
-            downPayments = service.downPayment
+            commission = commission,
+            downPayments = service.downPayment,
+            walletId = service.walletId
         )
 
         cashMovementRepository.save(cashMovement)
@@ -159,6 +162,16 @@ class ServicesService {
         serviceProducts.filter { productIdsToCancel.contains(it.productId) }
             .forEach { it.enabled = false }
 
+        // Update product left quantity
+        productIdsToCancel.forEach { p ->
+            val product = productRepository.findById(p).orElse(null)
+            var leftQuantity = product?.leftQuantity ?: 0
+            if (product != null) {
+                product.leftQuantity = ++leftQuantity
+                productRepository.save(product)
+            }
+        }
+
         service.debt = service.debt.subtract(cancelServiceRequest.discount)
         service.discount = service.discount.add(cancelServiceRequest.discount)
         service.totalValue = service.totalValue.subtract(cancelServiceRequest.discount)
@@ -166,7 +179,7 @@ class ServicesService {
             service.observations + "\n - Proceso de cancelación de productos aplicado a este servicio"
         else null
 
-        if (service.debt.compareTo(BigDecimal.ZERO) == 0) {
+        if (serviceProducts.none { it.enabled } || service.debt.compareTo(BigDecimal.ZERO) == 0) {
             service.state = "canceled"
         }
 
@@ -187,7 +200,7 @@ class ServicesService {
     }
 
     @Transactional
-    fun updateServiceForPayment(serviceId: Long, value: BigDecimal, nextPaymentDate: LocalDateTime?) : String{
+    fun updateServiceForPayment(serviceId: Long, value: BigDecimal, nextPaymentDate: LocalDateTime?) : Service {
         val service = repository.findById(serviceId).get()
 
         service.debt = service.debt - value
@@ -196,11 +209,14 @@ class ServicesService {
 
         service.pendingValue = getPendingValue(value, service.pendingValue, service.feeValue, service.state)
 
-        repository.save(service)
 
-        val customer = customerRepository.findById(service.customerId).get()
+        if (service.hasExpiredPayment == true && value.compareTo(service.feeValue) >= 0) {
+            service.hasExpiredPayment = false
+        } else if (service.hasExpiredPayment != true && value.compareTo(BigDecimal.ZERO) == 0) {
+            service.hasExpiredPayment = true
+        }
 
-        return customer.name + if (customer.lastName != null) " " + customer.lastName else ""
+        return repository.save(service)
     }
 
     @Transactional

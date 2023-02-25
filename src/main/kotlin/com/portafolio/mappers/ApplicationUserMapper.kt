@@ -20,7 +20,8 @@ class ApplicationUserMapper {
             cellphone = applicationUserCreateDto.cellphone,
             email = applicationUserCreateDto.email,
             password = applicationUserCreateDto.password,
-            userProfileId = applicationUserCreateDto.userProfileId
+            userProfileId = applicationUserCreateDto.userProfileId,
+            active = true
         )
 
     fun map(applicationUserId: Long, walletIds: List<Int>) : List<RelUserWallet>{

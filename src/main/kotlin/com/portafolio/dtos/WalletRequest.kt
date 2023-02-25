@@ -9,6 +9,9 @@ data class WalletRequest (
     val walletIds: List<Int>?,
 
     @JsonProperty("date")
-    val date: LocalDateTime? = null
+    val date: LocalDateTime? = null,
+
+    @JsonProperty("expired_services")
+    val expiredServices: Boolean? = false
 
 )

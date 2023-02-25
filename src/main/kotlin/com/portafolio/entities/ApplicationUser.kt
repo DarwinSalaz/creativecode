@@ -46,7 +46,11 @@ data class ApplicationUser (
 
     @Column(name = "created_at")
     @JsonProperty("created_at")
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+
+    @Column(name = "active")
+    @JsonProperty("active")
+    var active: Boolean
 
 ) {
 

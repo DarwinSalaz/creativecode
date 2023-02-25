@@ -3,6 +3,7 @@ package com.portafolio.controllers
 import com.portafolio.dtos.*
 import com.portafolio.entities.Service
 import com.portafolio.mappers.ServiceMapper
+import com.portafolio.models.ServiceSchedule
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.ServicesService
@@ -14,6 +15,7 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import javax.validation.Valid
 
@@ -82,16 +84,40 @@ class ServiceController {
 
         var services = service.findServiceSchedule(walletRequest.walletIds ?: listOf())
 
-        if (walletRequest.date != null && services != null) {
-            services = services
-                .filter { it.nextPaymentDate != null }
-                .filter {
-                    it.nextPaymentDate!!.truncatedTo(ChronoUnit.DAYS) == walletRequest.date.truncatedTo(ChronoUnit.DAYS)
-                }
+        if (services != null) {
+            services = if (walletRequest.expiredServices == true)
+                getExpiredServicesByDate(services, walletRequest.date ?: LocalDateTime.now())
+            else
+                getServicesByDate(services, walletRequest.date ?: LocalDateTime.now())
         }
 
         return if (services != null) mapper.map(services) else listOf()
     }
+
+    @PostMapping("/service/expired_services")
+    fun getExpiredServices(
+        @Valid @RequestBody walletRequest: WalletRequest
+    ) : List<ServiceScheduleResponse>? {
+        var services = service.findServiceSchedule(walletRequest.walletIds ?: listOf())
+
+        if (services != null) {
+            services = getExpiredServicesByDate(services, walletRequest.date ?: LocalDateTime.now())
+        }
+
+        return if (services != null) mapper.map(services) else listOf()
+    }
+
+    fun getServicesByDate(services: List<ServiceSchedule>, date: LocalDateTime) = services
+        .filter { it.nextPaymentDate != null }
+        .filter {
+            it.nextPaymentDate!!.truncatedTo(ChronoUnit.DAYS) == date.truncatedTo(ChronoUnit.DAYS)
+        }
+
+    fun getExpiredServicesByDate(services: List<ServiceSchedule>, date: LocalDateTime) = services
+        .filter { it.nextPaymentDate != null }
+        .filter {
+            it.hasExpiredPayment == true || it.nextPaymentDate!!.truncatedTo(ChronoUnit.DAYS) < date.truncatedTo(ChronoUnit.DAYS)
+        }
 
     @PostMapping("/service/cancel_service")
     fun cancelService(

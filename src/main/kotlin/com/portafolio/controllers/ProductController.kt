@@ -30,7 +30,8 @@ class ProductController {
     fun getProducts(pageable: Pageable, @Valid @RequestBody walletRequest: WalletRequest?) : ResponseEntity<ProductResponse> {
         var includeWalletName = false
         val products = if (walletRequest == null || walletRequest.walletIds.isNullOrEmpty()) {
-            repository.findAll(pageable).content
+            //repository.findAll(pageable).content
+            repository.findAll()
         } else {
             includeWalletName = walletRequest.walletIds.size > 1
             repository.findAllProductByWallets(walletRequest.walletIds, pageable)

@@ -62,7 +62,9 @@ class ExpenseService {
             description = expense.expenseType,
             cashControlId = cashControlId,
             commission = BigDecimal.ZERO,
-            downPayments = BigDecimal.ZERO
+            downPayments = BigDecimal.ZERO,
+            justification = expense.justification,
+            walletId = expense.walletId!!
         )
 
         cashMovementRepository.save(cashMovement)
@@ -71,4 +73,6 @@ class ExpenseService {
     }
 
     fun getExpenses(applicationUserId: Long) = repository.getExpenses(applicationUserId)
+
+    fun getExpensesByControlId(cashControlId: Long) = cashMovementRepository.getExpensesByCashControlId(cashControlId)
 }

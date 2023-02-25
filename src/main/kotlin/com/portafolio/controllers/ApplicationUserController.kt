@@ -16,7 +16,7 @@ import javax.validation.Valid
 
 @Validated
 @RestController
-@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST])
+@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT])
 class ApplicationUserController {
 
     @Autowired
@@ -49,6 +49,15 @@ class ApplicationUserController {
         return ResponseEntity.ok().body(hashMapOf("ok" to true))
     }
 
+    @PutMapping("/application_user/inactivate")
+    fun inactivate(@RequestParam("username") username: String) : ResponseEntity<HashMap<String, Boolean>> {
+        val user = repository.findByUsername(username) ?: return ResponseEntity.ok().body(hashMapOf("ok" to false))
+        user.active = false
+        repository.save(user)
+
+        return ResponseEntity.ok().body(hashMapOf("ok" to true))
+    }
+
     @GetMapping("/application_user/login")
     fun logIn(@RequestHeader(required = true) username: String,
               @RequestHeader(required = true) password: String) : HashMap<String, Any?> {
@@ -57,11 +66,16 @@ class ApplicationUserController {
             val token = service.logIn(password, username)
 
             val user = repository.findByUsername(username)
-            val userProfileId = user!!.userProfileId
-            val relUserWallets = relUserWalletRepository.findAllWalletsByUser(user.applicationUserId)
-            val walletIds = relUserWallets?.map { it.walletId } ?: listOf()
 
-            response = hashMapOf("ok" to !token.isNullOrEmpty(), "token" to token, "user_profile_id" to userProfileId, "wallet_ids" to walletIds)
+            response = if (user?.active == false) {
+                hashMapOf("ok" to false, "token" to null)
+            } else {
+                val userProfileId = user!!.userProfileId
+                val relUserWallets = relUserWalletRepository.findAllWalletsByUser(user.applicationUserId)
+                val walletIds = relUserWallets?.map { it.walletId } ?: listOf()
+
+                hashMapOf("ok" to !token.isNullOrEmpty(), "token" to token, "user_profile_id" to userProfileId, "wallet_ids" to walletIds)
+            }
         } catch (e: UsernameNotFoundException) {
             response = hashMapOf("ok" to false, "token" to null)
         } catch (e: BadCredentialsException) {
