@@ -1,4 +1,5 @@
-FROM gradle:7.4.1 AS build
-COPY --chown=gradle:gradle . /home/gradle/src
-WORKDIR /home/gradle/src
-RUN gradle build
+FROM openjdk:8-jdk-alpine
+EXPOSE 8080
+ADD /build/libs/creativecode-1.0.jar creativecode.jar
+ENTRYPOINT ["java", "-jar", "dockerdemo.jar"]
+
