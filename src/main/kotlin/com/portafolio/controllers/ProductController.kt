@@ -10,6 +10,7 @@ import com.portafolio.mappers.ProductMapper
 import com.portafolio.repositories.ProductRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
@@ -27,7 +28,7 @@ class ProductController {
     lateinit var mapper: ProductMapper
 
     @PostMapping("/products")
-    fun getProducts(pageable: Pageable, @Valid @RequestBody walletRequest: WalletRequest?) : ResponseEntity<ProductResponse> {
+    fun getProducts(@PageableDefault(size = 1000) pageable: Pageable, @Valid @RequestBody walletRequest: WalletRequest?) : ResponseEntity<ProductResponse> {
         var includeWalletName = false
         val products = if (walletRequest == null || walletRequest.walletIds.isNullOrEmpty()) {
             //repository.findAll(pageable).content
@@ -41,7 +42,7 @@ class ProductController {
     }
 
     @PostMapping("/product/create")
-    fun createCustomer(@Valid @RequestBody productDto: ProductDto) : Product {
+    fun createProduct(@Valid @RequestBody productDto: ProductDto) : Product {
 
         return repository.save(mapper.mapRev(productDto))
     }
