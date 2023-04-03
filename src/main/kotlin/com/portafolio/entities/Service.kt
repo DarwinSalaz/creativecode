@@ -21,7 +21,7 @@ data class Service (
     val serviceValue: BigDecimal = BigDecimal.valueOf(0),
 
     @Column(name = "down_payment")
-    val downPayment: BigDecimal = BigDecimal.valueOf(0),
+    var downPayment: BigDecimal = BigDecimal.valueOf(0),
 
     @Column(name = "discount")
     var discount: BigDecimal = BigDecimal.valueOf(0),
