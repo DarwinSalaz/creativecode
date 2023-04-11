@@ -45,16 +45,14 @@ class ServicesService {
         val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(service.applicationUserId)
         val cashControlId: Long
         var commission = initialPayment?.multiply(0.12.toBigDecimal())?.setScale(2) ?: BigDecimal.ZERO
-        var initialPaymentVar = initialPayment
 
-        // TODO Esto es temporal, mientras se modifica para ventas de contado
-        if (service.pendingValue?.equals(BigDecimal.ZERO) == true) {
+        // Esto pasa cuando es una compra de contado
+        if (service.debt.compareTo(BigDecimal.ZERO) == 0) {
             commission = BigDecimal.ZERO
-            initialPaymentVar = initialPayment?.add(service.downPayment)
-            service.downPayment = BigDecimal.ZERO
+            service.state = "fully_paid"
         }
 
-        val deposit = initialPaymentVar?.subtract(commission)?.setScale(2) ?: BigDecimal.ZERO
+        val deposit = initialPayment?.subtract(commission)?.setScale(2) ?: BigDecimal.ZERO
 
         if(activeCashControl == null) {
             val cashControl = CashControl(
