@@ -8,6 +8,7 @@ import com.portafolio.entities.Customer
 import com.portafolio.entities.Product
 import com.portafolio.mappers.ProductMapper
 import com.portafolio.repositories.ProductRepository
+import com.portafolio.repositories.WalletGroupRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
@@ -25,6 +26,9 @@ class ProductController {
     lateinit var repository: ProductRepository
 
     @Autowired
+    lateinit var walletGroupRepository: WalletGroupRepository
+
+    @Autowired
     lateinit var mapper: ProductMapper
 
     @PostMapping("/products")
@@ -34,8 +38,19 @@ class ProductController {
             //repository.findAll(pageable).content
             repository.findAll()
         } else {
-            includeWalletName = walletRequest.walletIds.size > 1
-            repository.findAllProductByWallets(walletRequest.walletIds, pageable)
+            var walletIds = walletRequest.walletIds
+            includeWalletName = walletIds.size > 1
+
+            if (walletIds.size == 1) {
+                val walletGroups = walletGroupRepository.findAllWalletsGroup(walletIds.first())
+                walletGroups?.let { wg ->
+                    if (wg.size > 1) {
+                        walletIds = wg.map { it.walletId }
+                    }
+                }
+            }
+
+            repository.findAllProductByWallets(walletIds!!, pageable)
         }
 
         return ResponseEntity.ok().body(ProductResponse(products = mapper.map(products, includeWalletName)));
