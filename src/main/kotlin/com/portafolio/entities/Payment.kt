@@ -29,6 +29,10 @@ data class Payment (
     @Column(name = "value")
     val value: BigDecimal = BigDecimal.ZERO,
 
+    @JsonProperty("status")
+    @Column(name = "status")
+    var status: String = "created",
+
     @JsonProperty("created_at")
     @Column(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)

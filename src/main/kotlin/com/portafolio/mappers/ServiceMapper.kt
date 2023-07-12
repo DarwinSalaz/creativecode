@@ -1,9 +1,10 @@
 package com.portafolio.mappers
 
+import java.math.BigDecimal
 import com.portafolio.dtos.*
 import com.portafolio.entities.Service
 import com.portafolio.entities.ServiceProduct
-import com.portafolio.models.ServiceSchedule
+import com.portafolio.models.*
 import com.portafolio.repositories.PaymentRepository
 import com.portafolio.repositories.ProductRepository
 import com.portafolio.services.Utilities
@@ -113,8 +114,11 @@ class ServiceMapper {
             }.toMutableList()
 
         servicesByCustomerResponse.payments = paymentRepository
-            .findAllPaymentsByServiceId(serviceId = service.serviceId)?.map { payment ->
+            .findAllPaymentsByServiceId(serviceId = service.serviceId)?.
+            filter { it.status != "canceled" }?.
+            map { payment ->
                 PaymentResumeDto(
+                    paymentId = payment.paymentId,
                     value = utilities.currencyFormat(payment.value.toPlainString()),
                     username = payment.applicationUser.username,
                     createdAt = payment.createdAt.toLocalDate().format(formatter)
@@ -134,4 +138,58 @@ class ServiceMapper {
                 nextPaymentDate = it.nextPaymentDate?.toLocalDate()
             )
         }
+
+    fun mapReport(servicesReportInt: List<ServiceReportInt>): ServiceReportResponse {
+        val totalProductValues = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.product_values) }
+        val totalDiscount = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.discount) }
+        val totalServiceValue = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.service_value) }
+        val totalDebt = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.debt) }
+        val servicesData = servicesReportInt.map {
+            ServiceReport(
+                id = it.id,
+                client = it.client,
+                products = it.products,
+                productValues = utilities.currencyFormat(it.product_values.toString()),
+                discount = utilities.currencyFormat(it.discount.toString()),
+                serviceValue = utilities.currencyFormat(it.service_value.toString()),
+                debt = utilities.currencyFormat(it.debt.toString()),
+                wallet = it.wallet,
+                username = it.username,
+                createdAt = it.created_at
+            )
+        }
+
+        return ServiceReportResponse(
+            totalProductValues = utilities.currencyFormat(totalProductValues.toString()),
+            totalDiscount = utilities.currencyFormat(totalDiscount.toString()),
+            totalServiceValue = utilities.currencyFormat(totalServiceValue.toString()),
+            totalDebt = utilities.currencyFormat(totalDebt.toString()),
+            servicesData = servicesData
+        )
+    }
+
+
+    fun mapPaymentReport(paymentReportInterfaces: List<PaymentReportInterface>): PaymentReportResponse {
+        val totalValue = paymentReportInterfaces.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.value) }
+
+        val payments = paymentReportInterfaces.map {
+            PaymentReport(
+                id = it.id,
+                client = it.client,
+                serviceId = it.service_id,
+                value = utilities.currencyFormat(it.value.toString()),
+                wallet = it.wallet,
+                username = it.username,
+                createdAt = it.created_at
+            )
+        }
+
+        return PaymentReportResponse(
+            totalValue = utilities.currencyFormat(totalValue.toString()),
+            paymentsData = payments
+        )
+    }
+
 }
+
+

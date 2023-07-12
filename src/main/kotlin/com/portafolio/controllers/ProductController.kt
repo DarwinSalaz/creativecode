@@ -1,20 +1,21 @@
 package com.portafolio.controllers
 
-import com.portafolio.dtos.CustomerDto
-import com.portafolio.dtos.ProductDto
-import com.portafolio.dtos.ProductResponse
-import com.portafolio.dtos.WalletRequest
+import com.portafolio.dtos.*
 import com.portafolio.entities.Customer
 import com.portafolio.entities.Product
 import com.portafolio.mappers.ProductMapper
+import com.portafolio.models.InventoryDetail
+import com.portafolio.models.PaymentReportResponse
 import com.portafolio.repositories.ProductRepository
 import com.portafolio.repositories.WalletGroupRepository
+import com.portafolio.services.ServiceProductService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import java.time.temporal.ChronoUnit
 import javax.validation.Valid
 
 @Validated
@@ -27,6 +28,9 @@ class ProductController {
 
     @Autowired
     lateinit var walletGroupRepository: WalletGroupRepository
+
+    @Autowired
+    lateinit var serviceProductService: ServiceProductService
 
     @Autowired
     lateinit var mapper: ProductMapper
@@ -68,6 +72,12 @@ class ProductController {
 
         product = mapper.mapProductUpdate(product, productDto)
         return repository.save(product)
+    }
+
+    @PostMapping("inventory/report")
+    fun inventoryReport(@Valid @RequestBody request: ResumeWalletRequest): List<InventoryDetail> {
+
+        return serviceProductService.getInventoryReport(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
     }
 
 }

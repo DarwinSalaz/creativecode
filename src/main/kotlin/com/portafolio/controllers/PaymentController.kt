@@ -1,7 +1,6 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.PaymentDto
-import com.portafolio.entities.Payment
 import com.portafolio.mappers.PaymentMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
@@ -10,12 +9,11 @@ import com.portafolio.services.ServicesService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
-import java.math.BigDecimal
 import javax.validation.Valid
 
 @Validated
 @RestController
-@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST])
+@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT])
 class PaymentController {
 
     @Autowired
@@ -53,6 +51,21 @@ class PaymentController {
         val payment = service.save(mapper.map(paymentDto), paymentDto.nextPaymentDate)
 
         return mapOf("payment_id" to payment.paymentId)
+    }
+
+    @PutMapping("/payment/cancel")
+    fun cancelPayment(@RequestParam("payment_id") paymentId: Long,
+                        @RequestHeader("Authorization") authorization: String) : Map<String, String>? {
+
+        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+        val applicationUsername : String = applicationUserService.verifyToken(token)
+        val user = applicationUserRepository.findByUsername(applicationUsername)
+
+        user ?: return null
+
+        val payment = service.cancelPayment(paymentId)
+
+        return mapOf("ok" to "true")
     }
 
 }

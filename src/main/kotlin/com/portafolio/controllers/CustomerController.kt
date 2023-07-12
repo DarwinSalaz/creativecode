@@ -9,6 +9,7 @@ import com.portafolio.repositories.CustomerRepository
 import com.portafolio.services.CustomerService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
@@ -43,7 +44,7 @@ class CustomerController {
     }
 
     @PostMapping("/customer")
-    fun getCustomers(pageable: Pageable, @Valid @RequestBody walletRequest: WalletRequest?) : ResponseEntity<CustomersResponse> {
+    fun getCustomers(@PageableDefault(size = 1000) pageable: Pageable, @Valid @RequestBody walletRequest: WalletRequest?) : ResponseEntity<CustomersResponse> {
         val customers = if (walletRequest == null || walletRequest.walletIds.isNullOrEmpty()) {
             repository.findAll(pageable).content
         } else {

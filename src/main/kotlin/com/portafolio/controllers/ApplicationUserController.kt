@@ -1,6 +1,8 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.ApplicationUserCreateDto
+import com.portafolio.dtos.CustomerDto
+import com.portafolio.entities.ApplicationUser
 import com.portafolio.mappers.ApplicationUserMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.repositories.RelUserWalletRepository
@@ -48,6 +50,17 @@ class ApplicationUserController {
 
         return ResponseEntity.ok().body(hashMapOf("ok" to true))
     }
+
+    @PutMapping("/application_user/{application_user_id}")
+    fun updateApplicationUser(@Valid @RequestBody applicationUserCreateDto: ApplicationUserCreateDto, @PathVariable("application_user_id") applicationUserId : Long) : ApplicationUser {
+        var applicationUser = repository.getOne(applicationUserId)
+        applicationUser = mapper.map(applicationUserCreateDto, applicationUser)
+
+        return repository.save(applicationUser)
+    }
+
+    @GetMapping("/application_user/{username}")
+    fun getApplicationUserByUsername(@PathVariable("username") username : String) = repository.findByUsername(username)
 
     @PutMapping("/application_user/inactivate")
     fun inactivate(@RequestParam("username") username: String) : ResponseEntity<HashMap<String, Boolean>> {

@@ -6,6 +6,9 @@ import java.time.LocalDate
 
 data class PaymentResumeDto(
 
+    @JsonProperty("payment_id")
+    val paymentId: Long?,
+
     @JsonProperty("value")
     val value: String?,
 

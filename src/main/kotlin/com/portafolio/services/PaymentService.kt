@@ -101,4 +101,58 @@ class PaymentService {
         return paymentSaved
     }
 
+    @Transactional
+    fun cancelPayment(paymentId: Long) : Payment {
+        val payment = repository.findById(paymentId).get()
+        val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
+        val commission = payment.value.multiply(0.12.toBigDecimal())
+        val cashControlId: Long
+
+        if (activeCashControl == null) {
+            val cashControl = CashControl(
+                applicationUserId = payment.applicationUser.applicationUserId,
+                active = true,
+                cash = payment.value.subtract(commission).multiply((-1).toBigDecimal()),
+                expenses = BigDecimal.ZERO,
+                commission = commission.multiply((-1).toBigDecimal()),
+                revenues = payment.value.multiply((-1).toBigDecimal()),
+                startsDate = LocalDateTime.now(),
+                servicesCount = 1
+            )
+
+            val cashControlSaved = cashControlService.save(cashControl)
+
+            cashControlId = cashControlSaved.cashControlId
+        } else {
+            cashControlService.updateValueForInputCash(activeCashControl, payment.value.multiply((-1).toBigDecimal()), commission.multiply((-1).toBigDecimal()), BigDecimal.ZERO, false)
+
+            cashControlId = activeCashControl.cashControlId
+        }
+
+        val service = servicesService.updateServiceForPayment(payment.serviceId, payment.value.multiply((-1).toBigDecimal()), null)
+        val customer = customerRepository.findById(service.customerId).get()
+        val customerName = customer.name + if (customer.lastName != null) " " + customer.lastName else ""
+
+        payment.status = "canceled"
+        repository.save(payment)
+
+        val cashMovement = CashMovement(
+            cashMovementType = "cancel_payment",
+            movementType = "OUT",
+            applicationUserId = payment.applicationUser.applicationUserId,
+            paymentId = payment.paymentId,
+            serviceId = payment.serviceId,
+            value = payment.value.subtract(commission),
+            description = customerName,
+            cashControlId = cashControlId,
+            commission = commission,
+            downPayments = BigDecimal.ZERO,
+            walletId = service.walletId
+        )
+
+        cashMovementRepository.save(cashMovement)
+
+        return payment
+    }
+
 }

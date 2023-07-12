@@ -3,8 +3,9 @@ package com.portafolio.controllers
 import com.portafolio.dtos.*
 import com.portafolio.entities.Service
 import com.portafolio.mappers.ServiceMapper
-import com.portafolio.models.ServiceSchedule
+import com.portafolio.models.*
 import com.portafolio.repositories.ApplicationUserRepository
+import com.portafolio.repositories.ServiceRepository
 import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.ServicesService
 import com.portafolio.services.Utilities
@@ -37,6 +38,9 @@ class ServiceController {
 
     @Autowired
     lateinit var applicationUserRepository: ApplicationUserRepository
+
+    @Autowired
+    lateinit var repository: ServiceRepository
 
     @Autowired
     lateinit var utilities: Utilities
@@ -133,6 +137,22 @@ class ServiceController {
         service.cancelService(cancelServiceRequest, user.applicationUserId)
 
         return ResponseEntity(mapOf("code" to "ok", "message" to "success"), HttpStatus.OK)
+    }
+
+    @PostMapping("service/report")
+    fun reportService(@Valid @RequestBody request: ResumeWalletRequest): ServiceReportResponse {
+
+        val data = repository.reportService(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+
+        return mapper.mapReport(data)
+    }
+
+    @PostMapping("payment/report")
+    fun reportPayments(@Valid @RequestBody request: ResumeWalletRequest): PaymentReportResponse {
+
+        val data = repository.reportPayments(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+
+        return mapper.mapPaymentReport(data)
     }
 
 }

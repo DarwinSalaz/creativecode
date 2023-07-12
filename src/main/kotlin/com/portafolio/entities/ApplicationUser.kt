@@ -1,6 +1,5 @@
 package com.portafolio.entities
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.time.LocalDateTime
 import javax.persistence.*
@@ -17,25 +16,25 @@ data class ApplicationUser (
 
     @Column(name = "company_id")
     @JsonProperty("company_id")
-    val companyId: Int,
+    var companyId: Int,
 
     @Column(name = "username")
-    val username: String,
+    var username: String,
 
     @Column(name = "name")
-    val name: String,
+    var name: String,
 
     @JsonProperty("last_name")
     @Column(name = "last_name")
-    val lastName: String? = null,
+    var lastName: String? = null,
 
     @JsonProperty("cellphone")
     @Column(name = "cellphone")
-    val cellphone: String? = null,
+    var cellphone: String? = null,
 
     @JsonProperty("email")
     @Column(name = "email")
-    val email: String? = null,
+    var email: String? = null,
 
     @Column(name = "password")
     var password: String,

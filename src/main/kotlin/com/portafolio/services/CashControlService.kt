@@ -127,9 +127,17 @@ class CashControlService {
         val startsDate = LocalDateTime.now().withHour(0).withMinute(0).withSecond(0)
         val endsDate = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59)
         val period = startsDate.toLocalDate().format(formatter) + "/" + endsDate.toLocalDate().format(formatter)
-        val inputs = movements.filter { it.movementType == "IN" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
-        val expenses = movements.filter { it.movementType == "OUT" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
-        val commissions = movements.filter { it.movementType == "IN" }.mapNotNull { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        var inputs = movements.filter { it.movementType == "IN" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val cancelPayments = movements.filter { it.movementType == "OUT" && it.cashMovementType == "cancel_payment" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        inputs = inputs.subtract(cancelPayments)
+
+        val expenses = movements.filter { it.movementType == "OUT" && it.cashMovementType != "cancel_payment" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+
+
+        var commissions = movements.filter { it.movementType == "IN" }.mapNotNull { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val commissionsCanceled = movements.filter { it.movementType == "OUT" && it.cashMovementType == "cancel_payment" }.map { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        commissions = commissions.subtract(commissionsCanceled)
+
         val downPayments = movements.filter { it.movementType == "IN" && it.cashMovementType == "new_service" }.map { it.downPayments }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         val cash = inputs.subtract(expenses)
         val revenues = inputs.add(commissions).add(downPayments)

@@ -161,6 +161,7 @@ class ServicesService {
 
     }
 
+    @Transactional
     fun cancelService(cancelServiceRequest: CancelServiceRequest, applicationUserId: Long) {
         val service = repository.findById(cancelServiceRequest.serviceId).get()
         val serviceProducts = service.serviceProducts
@@ -211,7 +212,7 @@ class ServicesService {
         val service = repository.findById(serviceId).get()
 
         service.debt = service.debt - value
-        service.nextPaymentDate = nextPaymentDate
+        service.nextPaymentDate = nextPaymentDate ?: service.nextPaymentDate
         service.state = if (service.debt.compareTo(BigDecimal.ZERO) == 0) "fully_paid" else "paying"
 
         service.pendingValue = getPendingValue(value, service.pendingValue, service.feeValue, service.state)
