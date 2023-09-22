@@ -60,7 +60,14 @@ class ApplicationUserController {
     }
 
     @GetMapping("/application_user/{username}")
-    fun getApplicationUserByUsername(@PathVariable("username") username : String) = repository.findByUsername(username)
+    fun getApplicationUserByUsername(@PathVariable("username") username : String) : ApplicationUserCreateDto? {
+        val applicationUser = repository.findByUsername(username)
+        applicationUser?.let {
+            val wallets = relUserWalletRepository.findAllWalletsByUser(applicationUserId = applicationUser.applicationUserId)
+
+            return mapper.mapRevert(applicationUser, wallets?.map { it.walletId })
+        } ?: return null
+    }
 
     @PutMapping("/application_user/inactivate")
     fun inactivate(@RequestParam("username") username: String) : ResponseEntity<HashMap<String, Boolean>> {

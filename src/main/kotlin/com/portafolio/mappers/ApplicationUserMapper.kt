@@ -29,6 +29,20 @@ class ApplicationUserMapper {
             active = true
         )
 
+    fun mapRevert(applicationUser: ApplicationUser, walletIds: List<Int>?) =
+        ApplicationUserCreateDto(
+            applicationUserId = applicationUser.applicationUserId,
+            companyId = applicationUser.companyId,
+            username = applicationUser.username,
+            name = applicationUser.name,
+            lastName = applicationUser.lastName,
+            cellphone = applicationUser.cellphone,
+            email = applicationUser.email,
+            password = applicationUser.password,
+            userProfileId = applicationUser.userProfileId,
+            walletIds = walletIds
+        )
+
     fun map(applicationUserCreateDto: ApplicationUserCreateDto, applicationUser: ApplicationUser) : ApplicationUser {
         applicationUser.companyId = applicationUserCreateDto.companyId
         applicationUser.username = applicationUserCreateDto.username

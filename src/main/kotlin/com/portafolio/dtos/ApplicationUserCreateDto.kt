@@ -7,6 +7,9 @@ import java.time.LocalDateTime
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ApplicationUserCreateDto (
 
+    @JsonProperty("application_user_id")
+    val applicationUserId: Long? = null,
+
     @JsonProperty("company_id")
     val companyId: Int,
 
