@@ -56,7 +56,14 @@ class ApplicationUserController {
         var applicationUser = repository.getOne(applicationUserId)
         applicationUser = mapper.map(applicationUserCreateDto, applicationUser)
 
-        return repository.save(applicationUser)
+        val userSaved = repository.save(applicationUser)
+
+        if(!applicationUserCreateDto.walletIds.isNullOrEmpty()) {
+            val relWalletsUser = mapper.map(applicationUserId = userSaved.applicationUserId, walletIds = applicationUserCreateDto.walletIds)
+            relUserWalletRepository.saveAll(relWalletsUser)
+        }
+
+        return userSaved
     }
 
     @GetMapping("/application_user/{username}")
