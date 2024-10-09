@@ -42,11 +42,15 @@ class CashControlService {
 
     @Transactional
     fun updateValueForInputCash(cashControl: CashControl, transactionValue: BigDecimal, commissionTransaction: BigDecimal, downPayment: BigDecimal, isNewService: Boolean) {
+        // efectivo: saldo actual del usuario (para retornar a la empresa) valor actual + (valor pagado - comision - seña)
         val cash = cashControl.cash.add(transactionValue.subtract(commissionTransaction).subtract(downPayment))
+        // ingresos: saldo actual + valor pagado
         val revenues = cashControl.revenues.add(transactionValue)
         val expenses = cashControl.expenses
         val servicesCount = if (isNewService) cashControl.servicesCount + 1 else cashControl.servicesCount
+        // comisiones: saldo actual + comision del abono
         val commission = cashControl.commission.add(commissionTransaction)
+        // señas: saldo actual + seña
         val downPayments = cashControl.downPayments?.add(downPayment) ?: BigDecimal.ZERO
 
         return repository.updateCashControlValues(cash, revenues, expenses, commission, servicesCount, downPayments, cashControl.cashControlId)

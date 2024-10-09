@@ -53,25 +53,26 @@ class ServicesService {
         }
 
         val deposit = initialPayment?.subtract(commission)?.setScale(2) ?: BigDecimal.ZERO
+        val transactionValue = service.downPayment.add(initialPayment ?: BigDecimal.ZERO)
 
         if(activeCashControl == null) {
             val cashControl = CashControl(
                 applicationUserId = service.applicationUserId,
                 active = true,
-                cash = BigDecimal.ZERO.add(deposit),
+                cash = BigDecimal.ZERO.add(deposit), // saldo de abono descontando la comision
                 expenses = BigDecimal.ZERO,
-                revenues = service.downPayment.add(deposit),
+                revenues = transactionValue, // seña  + abono
                 startsDate = LocalDateTime.now(),
                 commission = commission,
                 servicesCount = 1,
-                downPayments = service.downPayment
+                downPayments = service.downPayment // seña
             )
 
             val cashControlSaved = cashControlService.save(cashControl)
 
             cashControlId = cashControlSaved.cashControlId
         } else {
-            cashControlService.updateValueForInputCash(activeCashControl, service.downPayment.add(deposit ?: BigDecimal.ZERO), commission, service.downPayment, true)
+            cashControlService.updateValueForInputCash(activeCashControl, transactionValue, commission, service.downPayment, true)
 
             cashControlId = activeCashControl.cashControlId
         }
@@ -88,8 +89,8 @@ class ServicesService {
 
         val serviceSaved = repository.save(service)
 
-        val payment = if (deposit != null && deposit >= BigDecimal.ZERO) {
-            paymentService.savePayment(serviceSaved.serviceId, deposit, applicationUser)
+        val payment = if (initialPayment != null && initialPayment >= BigDecimal.ZERO) {
+            paymentService.savePayment(serviceSaved.serviceId, initialPayment, applicationUser)
         } else null
 
         val customer = customerRepository.findById(serviceSaved.customerId).get()
