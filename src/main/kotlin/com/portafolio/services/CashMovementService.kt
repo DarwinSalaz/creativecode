@@ -29,10 +29,12 @@ class CashMovementService {
         val inputs = movements.filter { it.movementType == "IN" }
         val outputs = movements.filter { it.movementType == "OUT" }
         val expensesList = outputs.filter { it.cashMovementType != "cancel_payment" }
-        val paymentsCanceledValue = outputs.filter { it.cashMovementType == "cancel_payment" }.map{ it.value }.fold(BigDecimal.ZERO) {a, b -> a.add(b)}
+        val paymentsCanceled = outputs.filter { it.cashMovementType == "cancel_payment" }
+        val paymentsCanceledValue = paymentsCanceled.map{ it.value }.fold(BigDecimal.ZERO) {a, b -> a.add(b)}
+        val commissionsCanceledValue = paymentsCanceled.map { it.commission }.fold(BigDecimal.ZERO) {a, b -> a.add(b)}
         val cash = inputs.map { it.value }.fold(BigDecimal.ZERO) {a, b -> a.add(b)}.subtract(paymentsCanceledValue)
         val downPayments = inputs.map { it.downPayments }.fold(BigDecimal.ZERO) {a, b -> a.add(b)}
-        val commissions = inputs.map { it.commission }.fold(BigDecimal.ZERO) {a, b -> a.add(b)}
+        val commissions = inputs.map { it.commission }.fold(BigDecimal.ZERO) {a, b -> a.add(b)}.subtract(commissionsCanceledValue)
         val expenses = expensesList.map { it.value }.fold(BigDecimal.ZERO) {a, b -> a.add(b)}
 
         val walletName = walletRepository.findById(walletId)
