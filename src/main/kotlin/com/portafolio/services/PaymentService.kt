@@ -104,6 +104,9 @@ class PaymentService {
     @Transactional
     fun cancelPayment(paymentId: Long) : Payment {
         val payment = repository.findById(paymentId).get()
+        if (payment.status == "canceled") {
+            throw IllegalArgumentException("payment already canceled")
+        }
         val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
         val commission = payment.value.multiply(0.12.toBigDecimal())
         val cashControlId: Long

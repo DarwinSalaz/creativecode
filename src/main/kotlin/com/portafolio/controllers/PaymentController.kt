@@ -63,7 +63,11 @@ class PaymentController {
 
         user ?: return null
 
-        val payment = service.cancelPayment(paymentId)
+        try {
+            service.cancelPayment(paymentId)
+        } catch (e: IllegalArgumentException) {
+            println("exception: ${e.message}")
+        }
 
         return mapOf("ok" to "true")
     }
