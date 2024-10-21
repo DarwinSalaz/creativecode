@@ -47,15 +47,17 @@ class ServiceController {
 
     @PostMapping("/service/create")
     fun createService(@Valid @RequestBody serviceDto: ServiceDto,
-                      @RequestHeader("Authorization") authorization: String) : Service? {
+                      @RequestHeader("Authorization") authorization: String) : ResponseEntity<Any> {
 
         val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
         val applicationUsername : String = applicationUserService.verifyToken(token)
         val user = applicationUserRepository.findByUsername(applicationUsername)
 
-        user ?: return null
+        user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
 
-        return service.save(mapper.map(serviceDto, user.applicationUserId), user, serviceDto.initialPayment)
+        val serviceCreated = service.save(mapper.map(serviceDto, user.applicationUserId), user, serviceDto.initialPayment)
+
+        return ResponseEntity.status(HttpStatus.OK).body(serviceCreated)
     }
 
     @ExceptionHandler(JwtException::class)
