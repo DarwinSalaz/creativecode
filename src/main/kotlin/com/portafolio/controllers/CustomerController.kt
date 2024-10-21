@@ -10,6 +10,7 @@ import com.portafolio.services.CustomerService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
@@ -30,9 +31,24 @@ class CustomerController {
     lateinit var repository: CustomerRepository
 
     @PostMapping("/customer/create")
-    fun createCustomer(@Valid @RequestBody customerDto: CustomerDto) : Customer {
+    fun createCustomer(@Valid @RequestBody customerDto: CustomerDto) : ResponseEntity<Any> {
+        val identificationNumber = customerDto.identificationNumber
 
-        return service.save(mapper.map(customerDto))
+        // Validar si el número de identificación está vacío
+        if (identificationNumber.isNullOrBlank()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El número de identificación es obligatorio.")
+        }
+
+        val customers = repository.findCustomerByIdAndWallet(identificationNumber, customerDto.walletId)
+
+        if (!customers.isNullOrEmpty()) {
+            // Retornar el cliente existente
+            return ResponseEntity.ok(customers[0])
+        }
+
+        val createdCustomer = service.save(mapper.map(customerDto))
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCustomer)
     }
 
     @PutMapping("/customer/{id_customer}")
