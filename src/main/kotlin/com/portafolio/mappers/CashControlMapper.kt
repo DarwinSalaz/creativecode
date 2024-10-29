@@ -58,7 +58,8 @@ class CashControlMapper {
                 commission = utilities.currencyFormat(it.commission.toPlainString()),
                 downPayments = utilities.currencyFormat(it.downPayments?.toPlainString() ?: BigDecimal.ZERO.toPlainString()),
                 createdAt = createdAt,
-                description = it.description
+                description = it.description,
+                expenseId = it.expenseId
             )
         }
 

@@ -61,7 +61,11 @@ data class CashMovement(
 
     @JsonProperty("wallet_id")
     @Column(name = "wallet_id")
-    var walletId: Int,
+    var walletId: Int?,
+
+    @JsonProperty("expense_id")
+    @Column(name = "expense_id")
+    val expenseId: Long?,
 
     @JsonProperty("created_at")
     @Column(name = "created_at")

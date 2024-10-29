@@ -31,5 +31,8 @@ data class CashMovementDto(
     var createdAt: String,
 
     @JsonProperty("description")
-    var description: String?
+    var description: String?,
+
+    @JsonProperty("expense_id")
+    var expenseId: Long?
 )

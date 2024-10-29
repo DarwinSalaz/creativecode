@@ -93,7 +93,8 @@ class PaymentService {
             cashControlId = cashControlId,
             commission = commission,
             downPayments = BigDecimal.ZERO,
-            walletId = service.walletId
+            walletId = service.walletId,
+            expenseId = null
         )
 
         cashMovementRepository.save(cashMovement)
@@ -150,7 +151,8 @@ class PaymentService {
             cashControlId = cashControlId,
             commission = commission,
             downPayments = BigDecimal.ZERO,
-            walletId = service.walletId
+            walletId = service.walletId,
+            expenseId = null
         )
 
         cashMovementRepository.save(cashMovement)

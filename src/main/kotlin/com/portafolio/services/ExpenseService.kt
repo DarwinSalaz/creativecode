@@ -56,7 +56,7 @@ class ExpenseService {
             cashMovementType = "expense",
             movementType = "OUT",
             applicationUserId = expense.applicationUserId,
-            paymentId = expenseSaved.expenseId,
+            paymentId = null,
             serviceId = null,
             value = expense.value,
             description = expense.expenseType,
@@ -64,7 +64,8 @@ class ExpenseService {
             commission = BigDecimal.ZERO,
             downPayments = BigDecimal.ZERO,
             justification = expense.justification,
-            walletId = expense.walletId!!
+            walletId = expense.walletId,
+            expenseId = expenseSaved.expenseId
         )
 
         cashMovementRepository.save(cashMovement)

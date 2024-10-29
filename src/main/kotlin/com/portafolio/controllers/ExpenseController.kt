@@ -2,13 +2,13 @@ package com.portafolio.controllers
 
 import com.portafolio.dtos.ExpenseDto
 import com.portafolio.dtos.ExpenseResumeDto
-import com.portafolio.dtos.PaymentDto
-import com.portafolio.entities.Expense
 import com.portafolio.mappers.ExpenseMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.ExpenseService
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import javax.validation.Valid
@@ -32,18 +32,18 @@ class ExpenseController {
 
     @PostMapping("/expense/create")
     fun create(@Valid @RequestBody expenseDto : ExpenseDto,
-               @RequestHeader("Authorization") authorization: String): Expense? {
+               @RequestHeader("Authorization") authorization: String): ResponseEntity<Any> {
         val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
         val applicationUsername : String = applicationUserService.verifyToken(token)
         val user = applicationUserRepository.findByUsername(applicationUsername)
 
-        user ?: return null
+        user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
 
         expenseDto.applicationUserId = user.applicationUserId
 
-        val expense = mapper.map(expenseDto)
+        val expenseSaved = service.save(mapper.map(expenseDto))
 
-        return service.save(expense)
+        return ResponseEntity.status(HttpStatus.OK).body(expenseSaved)
     }
 
     @GetMapping("/expenses-by-control/{cash_control_id}")

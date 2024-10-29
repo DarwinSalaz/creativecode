@@ -106,7 +106,8 @@ class ServicesService {
             cashControlId = cashControlId,
             commission = commission,
             downPayments = service.downPayment,
-            walletId = service.walletId
+            walletId = service.walletId,
+            expenseId = null
         )
 
         cashMovementRepository.save(cashMovement)
