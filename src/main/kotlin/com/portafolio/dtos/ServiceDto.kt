@@ -85,6 +85,10 @@ data class ServiceDto (
     val observations: String?,
 
     @JsonProperty("next_payment_date")
-    val nextPaymentDate: LocalDateTime? = null
+    val nextPaymentDate: LocalDateTime? = null,
+
+    @field:NotNull(message = "pending_fees is notNull")
+    @JsonProperty("pending_fees")
+    val pendingFees: Int?
 
 )

@@ -7,7 +7,9 @@ import com.portafolio.models.ServiceSchedule
 import com.portafolio.repositories.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import java.lang.Math.ceil
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDateTime
 import javax.transaction.Transactional
 
@@ -51,6 +53,7 @@ class ServicesService {
         if (service.debt.compareTo(BigDecimal.ZERO) == 0) {
             commission = BigDecimal.ZERO
             service.state = "fully_paid"
+            service.pendingFees = 0
         }
 
         val deposit = initialPayment?.subtract(commission)?.setScale(2) ?: BigDecimal.ZERO
@@ -170,6 +173,7 @@ class ServicesService {
 
         service.quantityOfFees = updateServiceDto.quantityOfFees
         service.feeValue = updateServiceDto.feeValue
+        service.pendingFees = service.debt.divide(service.feeValue, 0, RoundingMode.CEILING).toInt()
 
         repository.save(service)
     }
@@ -225,6 +229,7 @@ class ServicesService {
         val service = repository.findById(serviceId).get()
 
         service.debt = service.debt - value
+        service.pendingFees = service.debt.divide(service.feeValue, 0, RoundingMode.CEILING).toInt()
         service.nextPaymentDate = nextPaymentDate ?: service.nextPaymentDate
         service.state = if (service.debt.compareTo(BigDecimal.ZERO) == 0) "fully_paid" else "paying"
 

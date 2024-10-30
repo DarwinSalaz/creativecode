@@ -42,7 +42,8 @@ class ServiceMapper {
             quantityOfFees = serviceDto.quantityOfFees,
             feeValue = serviceDto.feeValue,
             observations = serviceDto.observations,
-            nextPaymentDate = serviceDto.nextPaymentDate
+            nextPaymentDate = serviceDto.nextPaymentDate,
+            pendingFees = serviceDto.pendingFees
         )
 
         service.serviceProducts = serviceDto.serviceProducts
@@ -68,7 +69,8 @@ class ServiceMapper {
             daysPerFee = service.daysPerFee,
             quantityOfFees = service.quantityOfFees,
             feeValue = service.feeValue,
-            observations = service.observations
+            observations = service.observations,
+            pendingFees = service.pendingFees
         )
 
         serviceDto.serviceProducts = service.serviceProducts
@@ -105,7 +107,8 @@ class ServiceMapper {
             daysPerFee = service.daysPerFee,
             debtInNumber = service.debt,
             observations = service.observations,
-            pendingValue = service.pendingValue?.let { utilities.currencyFormat(service.pendingValue.toString()) }
+            pendingValue = service.pendingValue?.let { utilities.currencyFormat(service.pendingValue.toString()) },
+            pendingFees = service.pendingFees
         )
 
         servicesByCustomerResponse.serviceProducts = service.serviceProducts

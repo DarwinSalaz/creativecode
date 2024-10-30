@@ -66,6 +66,9 @@ data class ServicesByCustomerResponse (
     var payments: List<PaymentResumeDto> = mutableListOf(),
 
     @JsonProperty("service_products")
-    var serviceProducts: MutableList<ServiceProductDto> = mutableListOf()
+    var serviceProducts: MutableList<ServiceProductDto> = mutableListOf(),
+
+    @JsonProperty("pending_fees")
+    val pendingFees: Int?
 
 )
