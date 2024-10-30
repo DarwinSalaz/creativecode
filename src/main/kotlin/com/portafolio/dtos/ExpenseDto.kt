@@ -22,6 +22,9 @@ class ExpenseDto (
     var justification: String?,
 
     @JsonProperty("wallet_id")
-    var walletId: Int?
+    var walletId: Int?,
+
+    @JsonProperty("username")
+    var username: String?
 
 )

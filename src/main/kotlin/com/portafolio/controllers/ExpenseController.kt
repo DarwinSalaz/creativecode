@@ -33,9 +33,14 @@ class ExpenseController {
     @PostMapping("/expense/create")
     fun create(@Valid @RequestBody expenseDto : ExpenseDto,
                @RequestHeader("Authorization") authorization: String): ResponseEntity<Any> {
-        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
-        val applicationUsername : String = applicationUserService.verifyToken(token)
-        val user = applicationUserRepository.findByUsername(applicationUsername)
+        val username: String = if (expenseDto.username.isNullOrEmpty()) {
+            val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+            applicationUserService.verifyToken(token)
+        } else {
+            expenseDto.username!!
+        }
+
+        val user = applicationUserRepository.findByUsername(username)
 
         user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
 
