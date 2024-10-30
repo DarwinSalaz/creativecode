@@ -22,7 +22,7 @@ import javax.validation.Valid
 
 @Validated
 @RestController
-@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST])
+@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT])
 class ServiceController {
 
     private val log = LoggerFactory.getLogger(this::class.java)
@@ -58,6 +58,20 @@ class ServiceController {
         val serviceCreated = service.save(mapper.map(serviceDto, user.applicationUserId), user, serviceDto.initialPayment)
 
         return ResponseEntity.status(HttpStatus.OK).body(serviceCreated)
+    }
+
+    @PutMapping("/service/update")
+    fun updateService(@Valid @RequestBody serviceDto: ServiceUpdateDto,
+                      @RequestHeader("Authorization") authorization: String) : ResponseEntity<Any> {
+        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+        val applicationUsername : String = applicationUserService.verifyToken(token)
+        val user = applicationUserRepository.findByUsername(applicationUsername)
+
+        user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
+
+        service.updateService(serviceDto)
+
+        return ResponseEntity(mapOf("code" to "ok", "message" to "success"), HttpStatus.OK)
     }
 
     @ExceptionHandler(JwtException::class)

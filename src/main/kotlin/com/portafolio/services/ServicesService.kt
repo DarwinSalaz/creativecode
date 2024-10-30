@@ -1,6 +1,7 @@
 package com.portafolio.services
 
 import com.portafolio.dtos.CancelServiceRequest
+import com.portafolio.dtos.ServiceUpdateDto
 import com.portafolio.entities.*
 import com.portafolio.models.ServiceSchedule
 import com.portafolio.repositories.*
@@ -161,6 +162,16 @@ class ServicesService {
 
         }
 
+    }
+
+    @Transactional
+    fun updateService(updateServiceDto: ServiceUpdateDto) {
+        val service = repository.findById(updateServiceDto.serviceId).get()
+
+        service.quantityOfFees = updateServiceDto.quantityOfFees
+        service.feeValue = updateServiceDto.feeValue
+
+        repository.save(service)
     }
 
     @Transactional

@@ -8,6 +8,21 @@ import javax.persistence.Column
 import javax.validation.constraints.NotNull
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+data class ServiceUpdateDto(
+    @field:NotNull(message = "service_id is notNull")
+    @JsonProperty("service_id")
+    var serviceId: Long,
+
+    @field:NotNull(message = "quantity_of_fees is notNull")
+    @JsonProperty("quantity_of_fees")
+    val quantityOfFees: Int,
+
+    @field:NotNull(message = "fee_value is notNull")
+    @JsonProperty("fee_value")
+    val feeValue: BigDecimal = BigDecimal.valueOf(0)
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class ServiceDto (
 
     @JsonProperty("service_id")

@@ -36,10 +36,10 @@ data class Service (
     val daysPerFee: Int = 0,
 
     @Column(name = "quantity_of_fees")
-    val quantityOfFees: Int = 0,
+    var quantityOfFees: Int = 0,
 
     @Column(name = "fee_value")
-    val feeValue: BigDecimal = BigDecimal.valueOf(0),
+    var feeValue: BigDecimal = BigDecimal.valueOf(0),
 
     @Column(name = "wallet_id")
     val walletId: Int = 0,

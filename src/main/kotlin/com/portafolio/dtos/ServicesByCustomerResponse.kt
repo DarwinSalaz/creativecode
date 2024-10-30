@@ -19,6 +19,9 @@ data class ServicesByCustomerResponse (
     @JsonProperty("down_payment")
     val downPayment: String,
 
+    @JsonProperty("down_payment_number")
+    val downPaymentNumber: BigDecimal,
+
     @JsonProperty("discount")
     val discount: String,
 
@@ -38,6 +41,9 @@ data class ServicesByCustomerResponse (
 
     @JsonProperty("fee_value")
     val feeValue: String,
+
+    @JsonProperty("total_value_number")
+    val totalValueNumber: BigDecimal,
 
     @JsonProperty("wallet_id")
     val walletId: Int,

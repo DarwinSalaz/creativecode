@@ -99,6 +99,8 @@ class ServiceMapper {
             customerId = service.customerId,
             createdAt = createdAt,
             feeValue = utilities.currencyFormat(service.feeValue.toString()),
+            totalValueNumber = service.totalValue,
+            downPaymentNumber = service.downPayment,
             quantityOfFees = service.quantityOfFees,
             daysPerFee = service.daysPerFee,
             debtInNumber = service.debt,
