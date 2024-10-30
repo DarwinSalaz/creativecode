@@ -1,13 +1,7 @@
 package com.portafolio
 
-import com.opencsv.CSVReader
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
-import java.io.FileReader
-import java.io.FileWriter
-
-import com.opencsv.CSVWriter
-import java.util.*
 
 
 @SpringBootApplication

@@ -195,6 +195,27 @@ class ServiceMapper {
         )
     }
 
+    fun mapExpiredServicesReport(expiredServiceReportInterface: List<ExpiredServiceReportInterface>): ExpiredServiceReportResponse {
+        val totalValue = expiredServiceReportInterface.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.debt) }
+
+        val services = expiredServiceReportInterface.map {
+            ExpiredServiceReport(
+                client = it.client,
+                cellphone = it.cellphone,
+                address = it.address,
+                totalValue = utilities.currencyFormat(it.total_value.toString()),
+                debt = utilities.currencyFormat(it.debt.toString()),
+                pendingFees = it.pending_fees,
+                nextPaymentDate = it.next_payment_date
+            )
+        }
+
+        return ExpiredServiceReportResponse(
+            totalValue = utilities.currencyFormat(totalValue.toString()),
+            expiredServices = services
+        )
+    }
+
 }
 
 

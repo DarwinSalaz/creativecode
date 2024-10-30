@@ -1,6 +1,7 @@
 package com.portafolio.models
 
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 interface PaymentReportInterface {
@@ -13,4 +14,14 @@ interface PaymentReportInterface {
     var username: String?
     var created_at: LocalDateTime?
 
+}
+
+interface ExpiredServiceReportInterface {
+    var client: String?
+    var cellphone: String?
+    var address: String?
+    var total_value: BigDecimal?
+    var debt: BigDecimal?
+    var pending_fees: Int?
+    var next_payment_date: LocalDateTime?
 }

@@ -171,4 +171,11 @@ class ServiceController {
         return mapper.mapPaymentReport(data)
     }
 
+    @PostMapping("expired/report")
+    fun reportExpiredServices(@Valid @RequestBody request: ResumeWalletRequest): ExpiredServiceReportResponse {
+        val data = repository.reportExpiredServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+
+        return mapper.mapExpiredServicesReport(data)
+    }
+
 }

@@ -11,3 +11,13 @@ data class PaymentReportResponse(
     var paymentsData: List<PaymentReport>
 
 )
+
+data class ExpiredServiceReportResponse(
+
+    @JsonProperty("total_value")
+    var totalValue: String?,
+
+    @JsonProperty("expired_services")
+    var expiredServices: List<ExpiredServiceReport>
+
+)
