@@ -67,6 +67,10 @@ data class CashMovement(
     @Column(name = "expense_id")
     val expenseId: Long?,
 
+    @JsonProperty("revenue_id")
+    @Column(name = "revenue_id")
+    val revenueId: Long?,
+
     @JsonProperty("created_at")
     @Column(name = "created_at")
     var createdAt: LocalDateTime = LocalDateTime.now()

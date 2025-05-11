@@ -24,6 +24,17 @@ class ExpenseService {
     private lateinit var cashMovementRepository: CashMovementRepository
 
     @Transactional
+    fun deleteExpense(expenseId: Long): Boolean {
+        val expense = repository.findById(expenseId).orElse(null) ?: return false
+        val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(expense.applicationUserId)
+        cashControlService.updateValuesForDeleteExpenses(activeCashControl, expense.value)
+        repository.deleteById(expenseId)
+        cashMovementRepository.deleteByExpenseId(expenseId)
+
+        return true
+    }
+
+    @Transactional
     fun save(expense: Expense) : Expense {
         //validate if the user has an active cash control
         val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(expense.applicationUserId)
@@ -65,7 +76,8 @@ class ExpenseService {
             downPayments = BigDecimal.ZERO,
             justification = expense.justification,
             walletId = expense.walletId,
-            expenseId = expenseSaved.expenseId
+            expenseId = expenseSaved.expenseId,
+            revenueId = null
         )
 
         cashMovementRepository.save(cashMovement)

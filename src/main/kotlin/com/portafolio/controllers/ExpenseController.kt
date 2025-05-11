@@ -15,7 +15,7 @@ import javax.validation.Valid
 
 @Validated
 @RestController
-@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST])
+@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE])
 class ExpenseController {
 
     @Autowired
@@ -29,6 +29,25 @@ class ExpenseController {
 
     @Autowired
     lateinit var service: ExpenseService
+
+    @DeleteMapping("/expense/{expense_id}")
+    fun delete(@PathVariable("expense_id") expenseId: Long,
+               @RequestHeader("Authorization") authorization: String): ResponseEntity<Any> {
+        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+        val username = applicationUserService.verifyToken(token)
+
+        val user = applicationUserRepository.findByUsername(username)
+
+        user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
+
+        val result = service.deleteExpense(expenseId)
+
+        return if (result) {
+            ResponseEntity.status(HttpStatus.OK).body(null)
+        } else {
+            ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null)
+        }
+    }
 
     @PostMapping("/expense/create")
     fun create(@Valid @RequestBody expenseDto : ExpenseDto,
