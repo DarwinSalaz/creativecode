@@ -3,6 +3,8 @@ package com.portafolio.dtos
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
+import java.time.LocalDateTime
+import javax.persistence.Column
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class ServicesByCustomerResponse (
@@ -69,6 +71,9 @@ data class ServicesByCustomerResponse (
     var serviceProducts: MutableList<ServiceProductDto> = mutableListOf(),
 
     @JsonProperty("pending_fees")
-    val pendingFees: Int?
+    val pendingFees: Int?,
+
+    @JsonProperty( "next_payment_date")
+    var nextPaymentDate: String? = null
 
 )

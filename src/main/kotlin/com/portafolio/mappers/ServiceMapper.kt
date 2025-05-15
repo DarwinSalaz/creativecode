@@ -85,6 +85,7 @@ class ServiceMapper {
 
         val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         val createdAt = service.createdAt.toLocalDate().format(formatter)
+        val nextPaymentDate = service.nextPaymentDate?.toLocalDate()?.format(formatter)
 
         log.info("[mapServicesByUser] Mapping service: $service")
 
@@ -108,7 +109,8 @@ class ServiceMapper {
             debtInNumber = service.debt,
             observations = service.observations,
             pendingValue = service.pendingValue?.let { utilities.currencyFormat(service.pendingValue.toString()) },
-            pendingFees = service.pendingFees
+            pendingFees = service.pendingFees,
+            nextPaymentDate = nextPaymentDate
         )
 
         servicesByCustomerResponse.serviceProducts = service.serviceProducts
