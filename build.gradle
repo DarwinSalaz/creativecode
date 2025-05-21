@@ -50,6 +50,7 @@ dependencies {
     compile('org.postgresql:postgresql:42.2.4')
     compile('org.slf4j:jcl-over-slf4j:1.7.25')
     implementation('javax.xml.bind:jaxb-api:2.3.0')
+    implementation("com.itextpdf:itext7-core:8.0.2")
     compile ('com.squareup.retrofit2:converter-jackson:2.4.0')
     implementation group: 'com.opencsv', name: 'opencsv', version: '3.7'
 

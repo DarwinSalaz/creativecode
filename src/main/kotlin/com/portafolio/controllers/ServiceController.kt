@@ -12,7 +12,9 @@ import com.portafolio.services.Utilities
 import io.jsonwebtoken.JwtException
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
@@ -176,6 +178,16 @@ class ServiceController {
         val data = repository.reportExpiredServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
 
         return mapper.mapExpiredServicesReport(data)
+    }
+
+    @PostMapping("/wallet-resume", produces = [MediaType.APPLICATION_PDF_VALUE])
+    fun getWalletResume(@RequestBody request: ResumeWalletRequest): ResponseEntity<ByteArray> {
+        val pdf = service.generateWalletReportPdf(request)
+        val headers = HttpHeaders().apply {
+            contentType = MediaType.APPLICATION_PDF
+            set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=wallet_report.pdf")
+        }
+        return ResponseEntity.ok().headers(headers).body(pdf)
     }
 
 }

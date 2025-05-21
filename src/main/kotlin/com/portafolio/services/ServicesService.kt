@@ -1,20 +1,34 @@
 package com.portafolio.services
 
+import com.itextpdf.kernel.colors.ColorConstants
+import com.itextpdf.kernel.geom.PageSize
+import com.itextpdf.kernel.pdf.PdfDocument
+import com.itextpdf.kernel.pdf.PdfWriter
+import com.itextpdf.layout.Document
+import com.itextpdf.layout.element.Cell
+import com.itextpdf.layout.element.Paragraph
+import com.itextpdf.layout.element.Table
+import com.itextpdf.layout.properties.UnitValue
 import com.portafolio.dtos.CancelServiceRequest
+import com.portafolio.dtos.ResumeWalletRequest
 import com.portafolio.dtos.ServiceUpdateDto
 import com.portafolio.entities.*
 import com.portafolio.models.ServiceSchedule
 import com.portafolio.repositories.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.lang.Math.ceil
+import java.io.ByteArrayOutputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
 import javax.transaction.Transactional
+import com.portafolio.dtos.WalletTransactionSummary
 
 @org.springframework.stereotype.Service
-class ServicesService {
+class ServicesService(
+    val expenseRepository: ExpenseRepository,
+    val revenueRepository: RevenueRepository
+) {
     private val log = LoggerFactory.getLogger(this::class.java)
 
     @Autowired
@@ -244,6 +258,101 @@ class ServicesService {
         }
 
         return repository.save(service)
+    }
+
+    fun generateWalletReportPdf(dto: ResumeWalletRequest): ByteArray {
+        val expenses = expenseRepository
+            .findByWalletAndDateRange(dto.walletId, dto.startsAt, dto.endsAt)
+
+        val revenues = revenueRepository
+            .findByWalletAndDateRange(dto.walletId, dto.startsAt, dto.endsAt)
+
+        val baos = ByteArrayOutputStream()
+        val writer = PdfWriter(baos)
+        val pdf = PdfDocument(writer)
+        val document = Document(pdf, PageSize.A4)
+        document.setMargins(20f, 20f, 20f, 20f)
+
+        document.add(Paragraph("Resumen de Ingresos y Gastos").setBold().setFontSize(16f))
+        document.add(Paragraph("Cartera ID: ${dto.walletId}"))
+        document.add(Paragraph("Desde: ${dto.startsAt}  Hasta: ${dto.endsAt}").setMarginBottom(15f))
+
+        fun addTable(title: String, data: List<WalletTransactionSummary>, total: BigDecimal) {
+            document.add(Paragraph(title).setBold().setFontSize(14f).setMarginTop(10f))
+
+            val table = Table(UnitValue.createPercentArray(floatArrayOf(2f, 2f, 2f, 4f)))
+                .useAllAvailableWidth()
+
+            table.addHeaderCell(Cell().add(Paragraph("Fecha").setBold()))
+            table.addHeaderCell(Cell().add(Paragraph("Tipo").setBold()))
+            table.addHeaderCell(Cell().add(Paragraph("Valor").setBold()))
+            table.addHeaderCell(Cell().add(Paragraph("Justificación").setBold()))
+
+            data.forEach {
+                table.addCell(it.date.toLocalDate().toString())
+                table.addCell(it.category)
+                table.addCell("$${"%,.2f".format(it.value)}")
+                table.addCell(it.justification ?: "")
+            }
+
+            table.addCell(Cell(1, 2).add(Paragraph("TOTAL")).setBold())
+            table.addCell(Cell(1, 1).add(Paragraph("$${"%,.2f".format(total)}")).setBold())
+            table.addCell(Cell(1, 1)) // Empty
+
+            document.add(table)
+        }
+
+        val incomeData = revenues.map {
+            WalletTransactionSummary(
+                type = "income",
+                date = it.revenueDate,
+                category = it.revenueType,
+                value = it.value,
+                justification = it.justification
+            )
+        }
+
+        val expenseData = expenses.map {
+            WalletTransactionSummary(
+                type = "expense",
+                date = it.expenseDate,
+                category = it.expenseType,
+                value = it.value,
+                justification = it.justification
+            )
+        }
+
+        val totalIncome = incomeData.fold(BigDecimal.ZERO) { acc, it -> acc + it.value }
+        val totalExpense = expenseData.fold(BigDecimal.ZERO) { acc, it -> acc + it.value }
+        addTable("INGRESOS", incomeData, totalIncome)
+        addTable("GASTOS", expenseData, totalExpense)
+
+        val finalBalance = totalIncome.subtract(totalExpense)
+        // Agregar tabla de saldo final
+        document.add(Paragraph(" ").setMarginTop(10f))
+        document.add(Paragraph("Resumen Final").setBold().setFontSize(14f).setMarginTop(15f))
+
+        val summaryTable = Table(UnitValue.createPercentArray(floatArrayOf(4f, 2f)))
+            .useAllAvailableWidth()
+
+        summaryTable.addCell(Cell().add(Paragraph("Total Ingresos").setBold()))
+        summaryTable.addCell(Cell().add(Paragraph("$${"%,.2f".format(totalIncome)}")))
+
+        summaryTable.addCell(Cell().add(Paragraph("Total Gastos").setBold()))
+        summaryTable.addCell(Cell().add(Paragraph("$${"%,.2f".format(totalExpense)}")))
+
+        summaryTable.addCell(Cell().add(Paragraph("Saldo Final").setBold()))
+        summaryTable.addCell(
+            Cell().add(
+                Paragraph("$${"%,.2f".format(finalBalance)}")
+                    .setFontColor(if (finalBalance >= BigDecimal.ZERO) ColorConstants.GREEN else ColorConstants.RED)
+            )
+        )
+
+        document.add(summaryTable)
+
+        document.close()
+        return baos.toByteArray()
     }
 
     @Transactional
