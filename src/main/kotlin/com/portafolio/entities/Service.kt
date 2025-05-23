@@ -68,7 +68,10 @@ data class Service (
     var hasExpiredPayment: Boolean? = false,
 
     @Column(name = "pending_fees")
-    var pendingFees: Int? = 0
+    var pendingFees: Int? = 0,
+
+    @Column(name = "marked_for_withdrawal")
+    var markedForWithdrawal: Boolean = false
 
 ) {
     @JsonProperty("service_products")

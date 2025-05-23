@@ -30,25 +30,29 @@ interface ServiceRepository: JpaRepository<Service, Long> {
     fun updateNextPaymentDateService(nextPaymentDate: LocalDateTime?, serviceId: Long)
 
     @Query(nativeQuery = true, value =
-    "select s.service_id as id, \n" +
-            " c.name || ' ' || c.last_name as client, \n" +
-            " STRING_AGG( coalesce(p.name, ' '), ' \n ') as products,\n" +
-            " s.service_value as product_values,\n" +
-            " s.discount as discount,\n" +
-            " s.total_value as service_value,\n" +
-            " s.debt as debt,\n" +
-            " w.name as wallet,\n" +
-            " u.username as username,\n" +
-            " s.created_at as created_at\n" +
-            " from services s inner join service_products sp using (service_id)\n" +
-            " inner join customers c using (customer_id)\n" +
-            " inner join products p using (product_id)\n" +
-            " inner join wallets w on (s.wallet_id = w.wallet_id)\n" +
-            " inner join application_users u using (application_user_id)\n" +
-            " where s.created_at between ?2 and ?3 and s.state != 'canceled'\n" +
-            " and s.wallet_id = ?1\n" +
-            " group by 1,2,4,5,6,7,8,9 order by s.created_at asc")
-    fun reportService(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ServiceReportInt>
+    "SELECT s.service_id AS id, \n" +
+            "       c.name || ' ' || c.last_name AS client, \n" +
+            "       STRING_AGG(p.name || ' x' || sp.quantity, ' \n ') AS products,\n" +
+            "       s.service_value AS product_values,\n" +
+            "       s.discount AS discount,\n" +
+            "       s.total_value AS service_value,\n" +
+            "       s.debt AS debt,\n" +
+            "       w.name AS wallet,\n" +
+            "       u.username AS username,\n" +
+            "       s.created_at AS created_at\n" +
+            "  FROM services s\n" +
+            "       INNER JOIN service_products sp USING (service_id)\n" +
+            "       INNER JOIN customers c USING (customer_id)\n" +
+            "       INNER JOIN products p USING (product_id)\n" +
+            "       INNER JOIN wallets w ON (s.wallet_id = w.wallet_id)\n" +
+            "       INNER JOIN application_users u USING (application_user_id)\n" +
+            " WHERE s.created_at BETWEEN ?2 AND ?3\n" +
+            "   AND s.state != 'canceled'\n" +
+            "   AND s.wallet_id = ?1\n" +
+            " GROUP BY s.service_id, client, s.service_value, s.discount, s.total_value, s.debt, w.name, u.username, s.created_at\n" +
+            " ORDER BY s.created_at ASC")
+    fun reportService(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime): List<ServiceReportInt>
+
 
     @Query(nativeQuery = true, value =
     "select \n" +

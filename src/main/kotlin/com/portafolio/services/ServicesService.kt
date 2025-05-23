@@ -380,4 +380,21 @@ class ServicesService(
             pendingValue
         }
     }
+
+    @Transactional
+    fun markForWithdrawal(serviceId: Long, customerId: Long) {
+        val service = repository.findById(serviceId).orElseThrow {
+            IllegalArgumentException("Servicio no encontrado")
+        }
+
+        val customer = customerRepository.findById(customerId).orElseThrow {
+            IllegalArgumentException("Cliente no encontrado")
+        }
+
+        service.markedForWithdrawal = true
+        customer.blocked = true
+
+        repository.save(service)
+        customerRepository.save(customer)
+    }
 }

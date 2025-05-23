@@ -110,7 +110,8 @@ class ServiceMapper {
             observations = service.observations,
             pendingValue = service.pendingValue?.let { utilities.currencyFormat(service.pendingValue.toString()) },
             pendingFees = service.pendingFees,
-            nextPaymentDate = nextPaymentDate
+            nextPaymentDate = nextPaymentDate,
+            markedForWithdrawal = service.markedForWithdrawal
         )
 
         servicesByCustomerResponse.serviceProducts = service.serviceProducts

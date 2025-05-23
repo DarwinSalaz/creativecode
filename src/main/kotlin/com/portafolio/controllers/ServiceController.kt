@@ -10,6 +10,7 @@ import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.ServicesService
 import com.portafolio.services.Utilities
 import io.jsonwebtoken.JwtException
+import org.omg.IOP.TransactionService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
@@ -189,5 +190,12 @@ class ServiceController {
         }
         return ResponseEntity.ok().headers(headers).body(pdf)
     }
+
+    @PostMapping("/mark-for-withdrawal")
+    fun markForWithdrawal(@RequestBody request: WithdrawalRequestDTO): ResponseEntity<Map<String, String>> {
+        service.markForWithdrawal(request.serviceId, request.customerId)
+        return ResponseEntity.ok(mapOf("status" to "ok"))
+    }
+
 
 }

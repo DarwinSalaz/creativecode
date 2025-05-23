@@ -60,6 +60,9 @@ data class Customer (
 
     @JsonProperty("wallet_id")
     @Column(name = "wallet_id")
-    var walletId: Int
+    var walletId: Int,
+
+    @Column(name = "blocked")
+    var blocked: Boolean = false
 
 )
