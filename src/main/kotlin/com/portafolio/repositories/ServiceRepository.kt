@@ -84,4 +84,16 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "and state != 'canceled' and next_payment_date < CURRENT_DATE\n" +
             "and s.created_at between ?2 and ?3")
     fun reportExpiredServices(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ExpiredServiceReportInterface>
+
+    @Query(nativeQuery = true, value =
+    "select c.name || ' ' || c.last_name as client,\n" +
+            "c.cellphone, c.address,\n" +
+            "s.total_value, s.debt as debt, \n" +
+            "s.pending_fees, next_payment_date\n" +
+            "from services s inner join customers c \n" +
+            "on s.customer_id = c.customer_id\n" +
+            "where s.wallet_id = ?1 and state != 'fully_paid' \n" +
+            "and state != 'canceled' and marked_for_withdrawal = true \n" +
+            "and s.created_at between ?2 and ?3")
+    fun reportMarkedForWithdrawalServices(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ExpiredServiceReportInterface>
 }

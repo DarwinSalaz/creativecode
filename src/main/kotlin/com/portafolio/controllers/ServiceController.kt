@@ -181,6 +181,13 @@ class ServiceController {
         return mapper.mapExpiredServicesReport(data)
     }
 
+    @PostMapping("withdrawal/report")
+    fun reportWithdrawalServices(@Valid @RequestBody request: ResumeWalletRequest): ExpiredServiceReportResponse {
+        val data = repository.reportMarkedForWithdrawalServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+
+        return mapper.mapExpiredServicesReport(data)
+    }
+
     @PostMapping("/wallet-resume", produces = [MediaType.APPLICATION_PDF_VALUE])
     fun getWalletResume(@RequestBody request: ResumeWalletRequest): ResponseEntity<ByteArray> {
         val pdf = service.generateWalletReportPdf(request)
