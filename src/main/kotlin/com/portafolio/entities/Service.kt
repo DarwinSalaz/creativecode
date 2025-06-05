@@ -71,7 +71,10 @@ data class Service (
     var pendingFees: Int? = 0,
 
     @Column(name = "marked_for_withdrawal")
-    var markedForWithdrawal: Boolean = false
+    var markedForWithdrawal: Boolean = false,
+
+    @Column(name = "marked_as_lost")
+    var markedAsLost: Boolean = false
 
 ) {
     @JsonProperty("service_products")

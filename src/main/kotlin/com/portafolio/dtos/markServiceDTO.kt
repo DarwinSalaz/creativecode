@@ -1,6 +1,6 @@
 package com.portafolio.dtos
 
-data class WithdrawalRequestDTO(
+data class markServiceDTO(
     val serviceId: Long,
     val customerId: Long
 )

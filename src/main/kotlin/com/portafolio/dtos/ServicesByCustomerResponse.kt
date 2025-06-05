@@ -75,6 +75,9 @@ data class ServicesByCustomerResponse (
     var nextPaymentDate: String? = null,
 
     @JsonProperty("marked_for_withdrawal")
-    var markedForWithdrawal: Boolean = false
+    var markedForWithdrawal: Boolean = false,
+
+    @JsonProperty("marked_as_lost")
+    var markedAsLost: Boolean = false
 
 )

@@ -1,7 +1,6 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.*
-import com.portafolio.entities.Service
 import com.portafolio.mappers.ServiceMapper
 import com.portafolio.models.*
 import com.portafolio.repositories.ApplicationUserRepository
@@ -10,7 +9,6 @@ import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.ServicesService
 import com.portafolio.services.Utilities
 import io.jsonwebtoken.JwtException
-import org.omg.IOP.TransactionService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
@@ -199,10 +197,15 @@ class ServiceController {
     }
 
     @PostMapping("/mark-for-withdrawal")
-    fun markForWithdrawal(@RequestBody request: WithdrawalRequestDTO): ResponseEntity<Map<String, String>> {
+    fun markForWithdrawal(@RequestBody request: markServiceDTO): ResponseEntity<Map<String, String>> {
         service.markForWithdrawal(request.serviceId, request.customerId)
         return ResponseEntity.ok(mapOf("status" to "ok"))
     }
 
+    @PostMapping("/mark-as-lost")
+    fun markAsLost(@RequestBody request: markServiceDTO): ResponseEntity<Map<String, String>> {
+        service.markAsLost(request.serviceId, request.customerId)
+        return ResponseEntity.ok(mapOf("status" to "ok"))
+    }
 
 }
