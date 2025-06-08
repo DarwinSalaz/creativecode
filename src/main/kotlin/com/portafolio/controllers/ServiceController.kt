@@ -186,14 +186,10 @@ class ServiceController {
         return mapper.mapExpiredServicesReport(data)
     }
 
-    @PostMapping("/wallet-resume", produces = [MediaType.APPLICATION_PDF_VALUE])
-    fun getWalletResume(@RequestBody request: ResumeWalletRequest): ResponseEntity<ByteArray> {
-        val pdf = service.generateWalletReportPdf(request)
-        val headers = HttpHeaders().apply {
-            contentType = MediaType.APPLICATION_PDF
-            set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=wallet_report.pdf")
-        }
-        return ResponseEntity.ok().headers(headers).body(pdf)
+    @PostMapping("/wallet-resume", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun getWalletResume(@RequestBody request: ResumeWalletRequest): ResponseEntity<WalletResumeResponse> {
+        val response = service.generateWalletReportData(request)
+        return ResponseEntity.ok(response)
     }
 
     @PostMapping("/mark-for-withdrawal")
