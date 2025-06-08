@@ -186,6 +186,13 @@ class ServiceController {
         return mapper.mapExpiredServicesReport(data)
     }
 
+    @PostMapping("canceled/report")
+    fun reportCanceledServices(@Valid @RequestBody request: ResumeWalletRequest): ExpiredServiceReportResponse {
+        val data = repository.reportCanceledServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+
+        return mapper.mapExpiredServicesReport(data)
+    }
+
     @PostMapping("/wallet-resume", produces = [MediaType.APPLICATION_JSON_VALUE])
     fun getWalletResume(@RequestBody request: ResumeWalletRequest): ResponseEntity<WalletResumeResponse> {
         val response = service.generateWalletReportData(request)
