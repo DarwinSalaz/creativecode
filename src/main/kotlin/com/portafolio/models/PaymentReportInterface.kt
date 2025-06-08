@@ -24,4 +24,7 @@ interface ExpiredServiceReportInterface {
     var debt: BigDecimal?
     var pending_fees: Int?
     var next_payment_date: LocalDateTime?
+    var created_at: LocalDateTime?
+    var last_payment_date: LocalDateTime?
+    var expired_fees: Int?
 }

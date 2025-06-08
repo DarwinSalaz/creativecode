@@ -76,7 +76,7 @@ class ExpenseController {
         //val expenses = service.getExpenses(user!!.applicationUserId)
         val expenses = service.getExpensesByControlId(cashControlId)
 
-        return expenses.map { mapper.mapReverse(it) } ?: emptyList()
+        return expenses.map { mapper.mapReverse(it) }
     }
 
 }

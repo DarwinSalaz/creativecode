@@ -129,7 +129,7 @@ class CashControlService {
     fun getDailyCashControl(applicationUser : ApplicationUser) : CashControlResponse {
         val cashControl = findActiveCashControlByUser(applicationUser.applicationUserId)
 
-        var movements = cashMovementRepository.findCashMovementsByCashControlId(cashControl!!.cashControlId)
+        var movements = cashMovementRepository.findCashMovementsByCashControlId(cashControl.cashControlId)
 
         movements = movements
             .filter {

@@ -47,5 +47,15 @@ data class ExpiredServiceReport (
     var pendingFees: Int?,
     @JsonFormat(pattern="yyyy-MM-dd")
     @JsonProperty("next_payment_date")
-    var nextPaymentDate: LocalDateTime?
+    var nextPaymentDate: LocalDateTime?,
+    @JsonFormat(pattern="yyyy-MM-dd")
+    @JsonProperty("created_at")
+    var createdAt: LocalDateTime?,
+    @JsonFormat(pattern="yyyy-MM-dd")
+    @JsonProperty("last_payment_date")
+    var lastPaymentDate: LocalDateTime?,
+    @JsonFormat(pattern="yyyy-MM-dd")
+    @JsonProperty("expired_fees")
+    var expiredFees: Int?
+
 )

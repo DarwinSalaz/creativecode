@@ -210,7 +210,10 @@ class ServiceMapper {
                 totalValue = utilities.currencyFormat(it.total_value.toString()),
                 debt = utilities.currencyFormat(it.debt.toString()),
                 pendingFees = it.pending_fees,
-                nextPaymentDate = it.next_payment_date
+                nextPaymentDate = it.next_payment_date,
+                createdAt = it.created_at,
+                lastPaymentDate = it.last_payment_date,
+                expiredFees = it.expired_fees
             )
         }
 

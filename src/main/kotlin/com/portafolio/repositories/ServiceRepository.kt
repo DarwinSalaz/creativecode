@@ -74,26 +74,62 @@ interface ServiceRepository: JpaRepository<Service, Long> {
 
 
     @Query(nativeQuery = true, value =
-    "select c.name || ' ' || c.last_name as client,\n" +
-            "c.cellphone, c.address,\n" +
-            "s.total_value, s.debt as debt, \n" +
-            "s.pending_fees, next_payment_date\n" +
-            "from services s inner join customers c \n" +
-            "on s.customer_id = c.customer_id\n" +
-            "where s.wallet_id = ?1 and state != 'fully_paid' \n" +
-            "and state != 'canceled' and next_payment_date < CURRENT_DATE\n" +
-            "and s.created_at between ?2 and ?3")
+    "select \n" +
+            "    c.name || ' ' || c.last_name as client,\n" +
+            "    c.cellphone, \n" +
+            "    c.address,\n" +
+            "    s.total_value, \n" +
+            "    s.debt, \n" +
+            "    s.pending_fees, \n" +
+            "    s.next_payment_date,\n" +
+            "    s.created_at,\n" +
+            "    (\n" +
+            "        select max(p.created_at) \n" +
+            "        from payments p \n" +
+            "        where p.service_id = s.service_id\n" +
+            "    ) as last_payment_date,\n" +
+            "    GREATEST(\n" +
+            "        FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.created_at) / s.days_per_fee) \n" +
+            "        - (s.quantity_of_fees - s.pending_fees),\n" +
+            "        0\n" +
+            "    ) as expired_fees\n" +
+            "from services s \n" +
+            "inner join customers c on s.customer_id = c.customer_id\n" +
+            "where \n" +
+            "    s.wallet_id = ?1 \n" +
+            "    and s.state != 'fully_paid' \n" +
+            "    and s.state != 'canceled' \n" +
+            "    and s.next_payment_date < CURRENT_DATE\n" +
+            "    and s.created_at between ?2 and ?3\n")
     fun reportExpiredServices(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ExpiredServiceReportInterface>
 
     @Query(nativeQuery = true, value =
-    "select c.name || ' ' || c.last_name as client,\n" +
-            "c.cellphone, c.address,\n" +
-            "s.total_value, s.debt as debt, \n" +
-            "s.pending_fees, next_payment_date\n" +
-            "from services s inner join customers c \n" +
-            "on s.customer_id = c.customer_id\n" +
-            "where s.wallet_id = ?1 and state != 'fully_paid' \n" +
-            "and state != 'canceled' and marked_for_withdrawal = true \n" +
-            "and s.created_at between ?2 and ?3")
+    "select \n" +
+            "    c.name || ' ' || c.last_name as client,\n" +
+            "    c.cellphone, \n" +
+            "    c.address,\n" +
+            "    s.total_value, \n" +
+            "    s.debt, \n" +
+            "    s.pending_fees, \n" +
+            "    s.next_payment_date,\n" +
+            "    s.created_at,\n" +
+            "    (\n" +
+            "        select max(p.created_at) \n" +
+            "        from payments p \n" +
+            "        where p.service_id = s.service_id\n" +
+            "    ) as last_payment_date,\n" +
+            "    GREATEST(\n" +
+            "        FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.created_at) / s.days_per_fee) \n" +
+            "        - (s.quantity_of_fees - s.pending_fees),\n" +
+            "        0\n" +
+            "    ) as expired_fees\n" +
+            "from services s \n" +
+            "inner join customers c on s.customer_id = c.customer_id\n" +
+            "where \n" +
+            "    s.wallet_id = ?1 \n" +
+            "    and s.state != 'fully_paid' \n" +
+            "    and s.state != 'canceled' and marked_for_withdrawal = true \n" +
+            "    and s.next_payment_date < CURRENT_DATE\n" +
+            "    and s.created_at between ?2 and ?3\n")
     fun reportMarkedForWithdrawalServices(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ExpiredServiceReportInterface>
 }
