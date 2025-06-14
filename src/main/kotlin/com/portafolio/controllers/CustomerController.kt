@@ -7,6 +7,7 @@ import com.portafolio.entities.Customer
 import com.portafolio.mappers.CustomerMapper
 import com.portafolio.repositories.CustomerRepository
 import com.portafolio.services.CustomerService
+import com.portafolio.services.ServicesService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
@@ -30,8 +31,14 @@ class CustomerController {
     @Autowired
     lateinit var repository: CustomerRepository
 
+    @Autowired
+    lateinit var servicesService: ServicesService
+
     @PostMapping("/customer/create")
-    fun createCustomer(@Valid @RequestBody customerDto: CustomerDto) : ResponseEntity<Any> {
+    fun createCustomer(
+        @Valid @RequestBody customerDto: CustomerDto,
+        @RequestHeader(value = "force_save", required = false, defaultValue = "false") forceSave: Boolean
+    ) : ResponseEntity<Any> {
         val identificationNumber = customerDto.identificationNumber
 
         // Validar si el número de identificación está vacío
@@ -39,11 +46,26 @@ class CustomerController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("El número de identificación es obligatorio.")
         }
 
-        val customers = repository.findCustomerByIdAndWallet(identificationNumber, customerDto.walletId)
+        val customers = repository.findAllByIdentificationNumber(identificationNumber)
 
         if (!customers.isNullOrEmpty()) {
-            // Retornar el cliente existente
-            return ResponseEntity.ok(customers[0])
+            val customerMatch = customers.firstOrNull { it.walletId == customerDto.walletId }
+
+            if (customerMatch != null) {
+                return ResponseEntity.ok(customerMatch)
+            } else {
+                if (!forceSave) {
+                    val inDebt = servicesService.isCustomerInDebit(customers[0].customerId)
+
+                    val response = mapOf(
+                        "error" to true,
+                        "message" to "El cliente ya existe en otra cartera.",
+                        "in_debt" to inDebt
+                    )
+
+                    return ResponseEntity.status(HttpStatus.CONFLICT).body(response)
+                }
+            }
         }
 
         val createdCustomer = service.save(mapper.map(customerDto))

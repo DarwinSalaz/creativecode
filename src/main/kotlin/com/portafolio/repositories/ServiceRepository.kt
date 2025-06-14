@@ -162,4 +162,14 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "    and s.created_at between ?2 and ?3\n")
     fun reportCanceledServices(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ExpiredServiceReportInterface>
 
+    @Query(
+        """
+        SELECT CASE WHEN COUNT(s) > 0 THEN TRUE ELSE FALSE END
+        FROM Service s
+        WHERE s.customerId = :customerId
+          AND s.state NOT IN ('canceled', 'finished')
+          AND s.nextPaymentDate < CURRENT_TIMESTAMP
+        """
+    )
+    fun hasOverdueServices(customerId: Long): Boolean
 }

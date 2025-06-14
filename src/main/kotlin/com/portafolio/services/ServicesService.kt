@@ -365,4 +365,8 @@ class ServicesService(
         repository.save(service)
         customerRepository.save(customer)
     }
+
+    fun isCustomerInDebit(customerId: Long): Any {
+        return repository.hasOverdueServices(customerId)
+    }
 }
