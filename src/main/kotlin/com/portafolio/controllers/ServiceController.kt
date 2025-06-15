@@ -157,10 +157,16 @@ class ServiceController {
 
     @PostMapping("service/report")
     fun reportService(@Valid @RequestBody request: ResumeWalletRequest): ServiceReportResponse {
+        val start = request.startsAt.truncatedTo(ChronoUnit.DAYS)
+        val end = request.endsAt.withHour(23).withMinute(59).withSecond(59)
 
-        val data = repository.reportService(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+        val data = repository.reportService(request.walletId, start, end)
+        val products = repository.findProductsSold(request.walletId, start, end)
 
-        return mapper.mapReport(data)
+        val response = mapper.mapReport(data)
+        response.productsSold = products
+
+        return response
     }
 
     @PostMapping("payment/report")

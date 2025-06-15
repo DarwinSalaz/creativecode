@@ -172,4 +172,21 @@ interface ServiceRepository: JpaRepository<Service, Long> {
         """
     )
     fun hasOverdueServices(customerId: Long): Boolean
+
+    @Query(
+        """
+    SELECT p.name AS productName, SUM(sp.quantity) AS totalQuantity
+    FROM services s
+    JOIN service_products sp ON s.service_id = sp.service_id
+    JOIN products p ON p.product_id = sp.product_id
+    WHERE s.created_at BETWEEN :start AND :end
+      AND s.state != 'canceled'
+      AND s.wallet_id = :walletId
+    GROUP BY p.name
+    ORDER BY totalQuantity DESC
+    """,
+        nativeQuery = true
+    )
+    fun findProductsSold(walletId: Int, start: LocalDateTime, end: LocalDateTime): List<ProductSoldReport>
+
 }

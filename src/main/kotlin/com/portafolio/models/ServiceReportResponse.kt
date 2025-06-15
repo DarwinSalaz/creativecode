@@ -17,6 +17,18 @@ data class ServiceReportResponse(
     var totalDebt: String?,
 
     @JsonProperty("services_data")
-    var servicesData: List<ServiceReport>
+    var servicesData: List<ServiceReport>,
+
+    @JsonProperty("products_sold")
+    var productsSold: List<ProductSoldReport> = emptyList()
 
 )
+
+data class ProductSoldReport(
+    @JsonProperty("product_name")
+    val productName: String,
+
+    @JsonProperty("total_quantity")
+    val totalQuantity: Int
+)
+
