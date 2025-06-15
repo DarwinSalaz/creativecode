@@ -163,10 +163,7 @@ class ServiceController {
         val data = repository.reportService(request.walletId, start, end)
         val products = repository.findProductsSold(request.walletId, start, end)
 
-        val response = mapper.mapReport(data)
-        response.productsSold = products
-
-        return response
+        return mapper.mapReport(data, products)
     }
 
     @PostMapping("payment/report")

@@ -148,11 +148,18 @@ class ServiceMapper {
             )
         }
 
-    fun mapReport(servicesReportInt: List<ServiceReportInt>): ServiceReportResponse {
+    fun mapReport(servicesReportInt: List<ServiceReportInt>, productsSold: List<ProductSoldReportInt>): ServiceReportResponse {
         val totalProductValues = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.product_values) }
         val totalDiscount = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.discount) }
         val totalServiceValue = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.service_value) }
         val totalDebt = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.debt) }
+        val productsData = productsSold.map {
+            ProductSoldReport(
+                productName = it.productName,
+                totalQuantity = it.totalQuantity
+            )
+        }
+
         val servicesData = servicesReportInt.map {
             ServiceReport(
                 id = it.id,
@@ -173,7 +180,8 @@ class ServiceMapper {
             totalDiscount = utilities.currencyFormat(totalDiscount.toString()),
             totalServiceValue = utilities.currencyFormat(totalServiceValue.toString()),
             totalDebt = utilities.currencyFormat(totalDebt.toString()),
-            servicesData = servicesData
+            servicesData = servicesData,
+            productsSold = productsData
         )
     }
 

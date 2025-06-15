@@ -32,3 +32,7 @@ data class ProductSoldReport(
     val totalQuantity: Int
 )
 
+interface ProductSoldReportInt {
+    val productName: String
+    val totalQuantity: Int
+}

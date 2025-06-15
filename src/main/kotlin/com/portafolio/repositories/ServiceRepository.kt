@@ -187,6 +187,6 @@ interface ServiceRepository: JpaRepository<Service, Long> {
     """,
         nativeQuery = true
     )
-    fun findProductsSold(walletId: Int, start: LocalDateTime, end: LocalDateTime): List<ProductSoldReport>
+    fun findProductsSold(walletId: Int, start: LocalDateTime, end: LocalDateTime): List<ProductSoldReportInt>
 
 }
