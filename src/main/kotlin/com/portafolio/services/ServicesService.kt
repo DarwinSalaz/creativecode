@@ -50,6 +50,9 @@ class ServicesService(
     private lateinit var logCancelServiceRepository: LogCancelServiceRepository
 
     @Autowired
+    private lateinit var serviceDownPaymentPaymentRepository: ServiceDownPaymentPaymentRepository
+
+    @Autowired
     private lateinit var paymentService: PaymentService
 
     //@Autowired
@@ -61,7 +64,11 @@ class ServicesService(
         //validate if the user has an active cash control
         val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(service.applicationUserId)
         val cashControlId: Long
-        var commission = initialPayment?.multiply(0.12.toBigDecimal())?.setScale(2) ?: BigDecimal.ZERO
+
+        var commission = BigDecimal.ZERO
+        if (!service.payDownInInstallments) {
+            commission = initialPayment?.multiply(0.12.toBigDecimal())?.setScale(2) ?: BigDecimal.ZERO
+        }
 
         // Esto pasa cuando es una compra de contado
         if (service.debt.compareTo(BigDecimal.ZERO) == 0) {
@@ -131,6 +138,15 @@ class ServicesService(
 
         cashMovementRepository.save(cashMovement)
 
+
+        if (service.payDownInInstallments && service.downPayment > BigDecimal.ZERO && payment != null) {
+            val dpPayment = ServiceDownPaymentPayment(
+                service = serviceSaved,
+                payment = payment,
+                value = service.downPayment
+            )
+            serviceDownPaymentPaymentRepository.save(dpPayment)
+        }
 
 
         /*if (service.nextPaymentDate != null) {

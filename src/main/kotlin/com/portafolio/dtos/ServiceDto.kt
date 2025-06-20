@@ -89,6 +89,9 @@ data class ServiceDto (
 
     @field:NotNull(message = "pending_fees is notNull")
     @JsonProperty("pending_fees")
-    val pendingFees: Int?
+    val pendingFees: Int?,
+
+    @JsonProperty("pay_down_in_installments")
+    val payDownInInstallments: Boolean = false
 
 )

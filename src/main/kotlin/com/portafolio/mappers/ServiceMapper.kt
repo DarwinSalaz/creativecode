@@ -27,6 +27,11 @@ class ServiceMapper {
     lateinit var paymentRepository: PaymentRepository
 
     fun map(serviceDto: ServiceDto, applicationUserId: Long): Service {
+        var downPaymentTotal = serviceDto.downPayment
+
+        if (serviceDto.payDownInInstallments) {
+            downPaymentTotal = serviceDto.totalValue.subtract(serviceDto.discount).multiply(0.1.toBigDecimal())
+        }
         val service = Service(
             applicationUserId = applicationUserId,
             serviceValue = serviceDto.serviceValue,
@@ -43,7 +48,9 @@ class ServiceMapper {
             feeValue = serviceDto.feeValue,
             observations = serviceDto.observations,
             nextPaymentDate = serviceDto.nextPaymentDate,
-            pendingFees = serviceDto.pendingFees
+            pendingFees = serviceDto.pendingFees,
+            downPaymentTotal = downPaymentTotal,
+            payDownInInstallments = serviceDto.payDownInInstallments
         )
 
         service.serviceProducts = serviceDto.serviceProducts

@@ -23,6 +23,10 @@ data class Service (
     @Column(name = "down_payment")
     var downPayment: BigDecimal = BigDecimal.valueOf(0),
 
+    // Nuevo campo: valor total que debería pagarse como seña (usualmente 10% del total sin descuento)
+    @Column(name = "down_payment_total")
+    var downPaymentTotal: BigDecimal = BigDecimal.ZERO,
+
     @Column(name = "discount")
     var discount: BigDecimal = BigDecimal.valueOf(0),
 
@@ -74,7 +78,10 @@ data class Service (
     var markedForWithdrawal: Boolean = false,
 
     @Column(name = "marked_as_lost")
-    var markedAsLost: Boolean = false
+    var markedAsLost: Boolean = false,
+
+    @Column(name = "pay_down_in_installments")
+    val payDownInInstallments: Boolean = false
 
 ) {
     @JsonProperty("service_products")
