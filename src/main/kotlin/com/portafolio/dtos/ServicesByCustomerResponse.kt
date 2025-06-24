@@ -42,6 +42,9 @@ data class ServicesByCustomerResponse (
     @JsonProperty("fee_value")
     val feeValue: String,
 
+    @JsonProperty("fee_value_in_number")
+    val feeValueInNumber: BigDecimal,
+
     @JsonProperty("total_value_number")
     val totalValueNumber: BigDecimal,
 

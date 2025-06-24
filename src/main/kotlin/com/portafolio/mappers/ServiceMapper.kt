@@ -109,6 +109,7 @@ class ServiceMapper {
             customerId = service.customerId,
             createdAt = createdAt,
             feeValue = utilities.currencyFormat(service.feeValue.toString()),
+            feeValueInNumber = service.feeValue,
             totalValueNumber = service.totalValue,
             downPaymentNumber = service.downPayment,
             quantityOfFees = service.quantityOfFees,
