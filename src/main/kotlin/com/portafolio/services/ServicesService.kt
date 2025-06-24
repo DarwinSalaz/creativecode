@@ -256,12 +256,15 @@ class ServicesService(
     }
 
     @Transactional
-    fun updateServiceForPayment(serviceId: Long, value: BigDecimal, nextPaymentDate: LocalDateTime?) : Service {
+    fun updateServiceForPayment(serviceId: Long, value: BigDecimal, nextPaymentDate: LocalDateTime?, depositPayment: BigDecimal?) : Service {
         val service = repository.findById(serviceId).get()
 
         service.debt = service.debt - value
         service.pendingFees = service.debt.divide(service.feeValue, 0, RoundingMode.CEILING).toInt()
         service.nextPaymentDate = nextPaymentDate ?: service.nextPaymentDate
+        if (depositPayment != null && depositPayment !== BigDecimal.ZERO) {
+            service.downPayment = service.downPayment.add(depositPayment)
+        }
         service.state = if (service.debt.compareTo(BigDecimal.ZERO) == 0) "fully_paid" else "paying"
 
         service.pendingValue = getPendingValue(value, service.pendingValue, service.feeValue, service.state)

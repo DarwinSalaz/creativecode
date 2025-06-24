@@ -78,6 +78,12 @@ data class ServicesByCustomerResponse (
     var markedForWithdrawal: Boolean = false,
 
     @JsonProperty("marked_as_lost")
-    var markedAsLost: Boolean = false
+    var markedAsLost: Boolean = false,
+
+    @JsonProperty("pay_down_in_installments")
+    val payDownInInstallments: Boolean = false,
+
+    @JsonProperty("down_payment_total")
+    var downPaymentTotal: BigDecimal = BigDecimal.ZERO
 
 )

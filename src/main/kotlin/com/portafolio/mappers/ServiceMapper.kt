@@ -119,7 +119,9 @@ class ServiceMapper {
             pendingFees = service.pendingFees,
             nextPaymentDate = nextPaymentDate,
             markedForWithdrawal = service.markedForWithdrawal,
-            markedAsLost = service.markedAsLost
+            markedAsLost = service.markedAsLost,
+            payDownInInstallments = service.payDownInInstallments,
+            downPaymentTotal = service.downPaymentTotal
         )
 
         servicesByCustomerResponse.serviceProducts = service.serviceProducts

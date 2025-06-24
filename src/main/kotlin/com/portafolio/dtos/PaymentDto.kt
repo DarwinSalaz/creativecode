@@ -16,6 +16,9 @@ data class PaymentDto (
     val value: BigDecimal = BigDecimal.ZERO,
 
     @JsonProperty("next_payment_date")
-    val nextPaymentDate: LocalDateTime? = null
+    val nextPaymentDate: LocalDateTime? = null,
+
+    @JsonProperty("deposit_payment")
+    val depositPayment: BigDecimal = BigDecimal.ZERO
 
 )

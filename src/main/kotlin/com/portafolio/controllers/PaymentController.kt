@@ -48,7 +48,7 @@ class PaymentController {
 
         paymentDto.applicationUserId = user.applicationUserId
 
-        val payment = service.save(mapper.map(paymentDto), paymentDto.nextPaymentDate)
+        val payment = service.save(mapper.map(paymentDto), paymentDto.nextPaymentDate, paymentDto.depositPayment)
 
         return mapOf("payment_id" to payment.paymentId)
     }
