@@ -82,7 +82,7 @@ class PaymentService {
             description = customerName,
             cashControlId = cashControlId,
             commission = commission,
-            downPayments = BigDecimal.ZERO,
+            downPayments = depositPayment,
             walletId = service.walletId,
             expenseId = null,
             revenueId = null
