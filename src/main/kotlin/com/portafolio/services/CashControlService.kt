@@ -154,7 +154,7 @@ class CashControlService {
         val commissionsCanceled = movements.filter { it.movementType == "OUT" && it.cashMovementType == "cancel_payment" }.map { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         commissions = commissions.subtract(commissionsCanceled)
 
-        val downPayments = movements.filter { it.movementType == "IN" && it.cashMovementType == "new_service" }.map { it.downPayments }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val downPayments = movements.filter { it.movementType == "IN" }.map { it.downPayments }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         val cash = inputs.subtract(expenses)
         val revenues = inputs.add(commissions).add(downPayments)
 
