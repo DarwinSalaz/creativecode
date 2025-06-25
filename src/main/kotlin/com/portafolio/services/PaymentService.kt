@@ -99,33 +99,18 @@ class PaymentService {
         if (payment.status == "canceled") {
             throw IllegalArgumentException("payment already canceled")
         }
-        val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
+        val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
         val commission = payment.value.multiply(0.12.toBigDecimal())
-        val cashControlId: Long
 
-        if (activeCashControl == null) {
-            val cashControl = CashControl(
-                applicationUserId = payment.applicationUser.applicationUserId,
-                active = true,
-                cash = payment.value.subtract(commission).multiply((-1).toBigDecimal()),
-                expenses = BigDecimal.ZERO,
-                commission = commission.multiply((-1).toBigDecimal()),
-                revenues = payment.value.multiply((-1).toBigDecimal()),
-                startsDate = LocalDateTime.now(),
-                servicesCount = 1
-            )
+        val downPayment = serviceDownPaymentPaymentRepository.findByPaymentId(paymentId)
+        val downPaymentValue = downPayment.firstOrNull()?.value ?: BigDecimal.ZERO
 
-            val cashControlSaved = cashControlService.save(cashControl)
+        cashControlService.updateValueForInputCash(activeCashControl, payment.value.multiply((-1).toBigDecimal()), commission.multiply((-1).toBigDecimal()), downPaymentValue.multiply((-1).toBigDecimal()), false)
 
-            cashControlId = cashControlSaved.cashControlId
-        } else {
-            cashControlService.updateValueForInputCash(activeCashControl, payment.value.multiply((-1).toBigDecimal()), commission.multiply((-1).toBigDecimal()), BigDecimal.ZERO, false)
-
-            cashControlId = activeCashControl.cashControlId
-        }
+        val cashControlId = activeCashControl.cashControlId
 
         // TODO tener en cuenta el valor de depósito que se pagó
-        val service = servicesService.updateServiceForPayment(payment.serviceId, payment.value.multiply((-1).toBigDecimal()), null, null)
+        val service = servicesService.updateServiceForPayment(payment.serviceId, payment.value.multiply((-1).toBigDecimal()), null, downPaymentValue.multiply((-1).toBigDecimal()))
         val customer = customerRepository.findById(service.customerId).get()
         val customerName = customer.name + if (customer.lastName != null) " " + customer.lastName else ""
 
@@ -142,7 +127,7 @@ class PaymentService {
             description = customerName,
             cashControlId = cashControlId,
             commission = commission,
-            downPayments = BigDecimal.ZERO,
+            downPayments = downPaymentValue,
             walletId = service.walletId,
             expenseId = null,
             revenueId = null
