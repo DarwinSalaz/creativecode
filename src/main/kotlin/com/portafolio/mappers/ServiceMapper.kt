@@ -30,7 +30,7 @@ class ServiceMapper {
         var downPaymentTotal = serviceDto.downPayment
 
         if (serviceDto.payDownInInstallments) {
-            downPaymentTotal = serviceDto.totalValue.subtract(serviceDto.discount).multiply(0.1.toBigDecimal())
+            downPaymentTotal = serviceDto.totalValue.multiply(0.1.toBigDecimal())
         }
         val service = Service(
             applicationUserId = applicationUserId,
