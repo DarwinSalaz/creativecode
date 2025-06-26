@@ -102,7 +102,7 @@ class PaymentService {
         val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
         val commission = payment.value.multiply(0.12.toBigDecimal())
 
-        val downPayment = serviceDownPaymentPaymentRepository.findByPaymentId(paymentId)
+        val downPayment = serviceDownPaymentPaymentRepository.findByPaymentPaymentId(paymentId)
         val downPaymentValue = downPayment.firstOrNull()?.value ?: BigDecimal.ZERO
 
         cashControlService.updateValueForInputCash(activeCashControl, payment.value.multiply((-1).toBigDecimal()), commission.multiply((-1).toBigDecimal()), downPaymentValue.multiply((-1).toBigDecimal()), false)

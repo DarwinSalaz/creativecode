@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface ServiceDownPaymentPaymentRepository : JpaRepository<ServiceDownPaymentPayment, Long> {
 
-    fun findByPaymentId(paymentId: Long): List<ServiceDownPaymentPayment>
+    fun findByPaymentPaymentId(paymentId: Long): List<ServiceDownPaymentPayment>
 
 }
