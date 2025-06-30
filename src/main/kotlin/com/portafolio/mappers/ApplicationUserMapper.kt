@@ -50,7 +50,7 @@ class ApplicationUserMapper {
         applicationUser.lastName = applicationUserCreateDto.lastName
         applicationUser.cellphone = applicationUserCreateDto.cellphone
         applicationUser.email = applicationUserCreateDto.email
-        if (applicationUserCreateDto.password !== "" && applicationUserCreateDto.password !== "no_change") {
+        if (applicationUserCreateDto.password.isNotEmpty() && applicationUserCreateDto.password != "no_change") {
             applicationUser.password = bCryptPasswordEncoder.encode(applicationUserCreateDto.password)
         }
         //applicationUser.userProfileId = applicationUserCreateDto.userProfileId

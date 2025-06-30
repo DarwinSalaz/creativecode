@@ -7,6 +7,9 @@ data class PaymentReportResponse(
     @JsonProperty("total_value")
     var totalValue: String?,
 
+    @JsonProperty("total_debt")
+    var totalDebt: String?,
+
     @JsonProperty("payments_data")
     var paymentsData: List<PaymentReport>
 

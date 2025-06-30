@@ -1,11 +1,9 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.*
-import com.portafolio.entities.Customer
 import com.portafolio.entities.Product
 import com.portafolio.mappers.ProductMapper
 import com.portafolio.models.InventoryDetail
-import com.portafolio.models.PaymentReportResponse
 import com.portafolio.repositories.ProductRepository
 import com.portafolio.repositories.WalletGroupRepository
 import com.portafolio.services.ServiceProductService

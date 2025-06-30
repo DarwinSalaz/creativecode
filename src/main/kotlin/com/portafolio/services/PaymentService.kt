@@ -109,7 +109,6 @@ class PaymentService {
 
         val cashControlId = activeCashControl.cashControlId
 
-        // TODO tener en cuenta el valor de depósito que se pagó
         val service = servicesService.updateServiceForPayment(payment.serviceId, payment.value.multiply((-1).toBigDecimal()), null, downPaymentValue.multiply((-1).toBigDecimal()))
         val customer = customerRepository.findById(service.customerId).get()
         val customerName = customer.name + if (customer.lastName != null) " " + customer.lastName else ""

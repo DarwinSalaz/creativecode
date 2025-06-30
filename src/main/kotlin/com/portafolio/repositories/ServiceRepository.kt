@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 @Repository
 interface ServiceRepository: JpaRepository<Service, Long> {
 
-    @Query("SELECT s FROM Service s WHERE s.customerId = ?1 and s.state in ('created', 'paying')")
+    @Query("SELECT s FROM Service s WHERE s.customerId = ?1 and s.state in ('created', 'paying', 'fully_paid')")
     fun findAllServicesByUser(customerId : Long) : List<Service>?
 
     @Modifying
@@ -60,6 +60,7 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "c.name || ' ' || c.last_name as client,\n" +
             "s.service_id as service_id,\n" +
             "p.value as value,\n" +
+            "s.debt as debt,\n" +
             "w.name as wallet,\n" +
             "u.username as username,\n" +
             "p.created_at\n" +

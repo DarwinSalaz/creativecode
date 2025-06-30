@@ -10,6 +10,7 @@ interface PaymentReportInterface {
     var client: String?
     var service_id: Long?
     var value: BigDecimal?
+    var debt: BigDecimal?
     var wallet: String?
     var username: String?
     var created_at: LocalDateTime?

@@ -20,6 +20,9 @@ data class PaymentReport (
     @JsonProperty("value")
     var value: String?,
 
+    @JsonProperty("debt")
+    var debt: String?,
+
     @JsonProperty("wallet")
     var wallet: String?,
 

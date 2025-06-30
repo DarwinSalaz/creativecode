@@ -198,6 +198,7 @@ class ServiceMapper {
 
     fun mapPaymentReport(paymentReportInterfaces: List<PaymentReportInterface>): PaymentReportResponse {
         val totalValue = paymentReportInterfaces.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.value) }
+        val totalDebt = paymentReportInterfaces.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.debt) }
 
         val payments = paymentReportInterfaces.map {
             PaymentReport(
@@ -205,6 +206,7 @@ class ServiceMapper {
                 client = it.client,
                 serviceId = it.service_id,
                 value = utilities.currencyFormat(it.value.toString()),
+                debt = utilities.currencyFormat(it.debt.toString()),
                 wallet = it.wallet,
                 username = it.username,
                 createdAt = it.created_at
@@ -213,6 +215,7 @@ class ServiceMapper {
 
         return PaymentReportResponse(
             totalValue = utilities.currencyFormat(totalValue.toString()),
+            totalDebt = utilities.currencyFormat(totalDebt.toString()),
             paymentsData = payments
         )
     }

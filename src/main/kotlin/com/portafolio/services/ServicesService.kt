@@ -65,10 +65,7 @@ class ServicesService(
         val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(service.applicationUserId)
         val cashControlId: Long
 
-        var commission = BigDecimal.ZERO
-        if (!service.payDownInInstallments) {
-            commission = initialPayment?.multiply(0.12.toBigDecimal())?.setScale(2) ?: BigDecimal.ZERO
-        }
+        var commission = initialPayment?.multiply(0.12.toBigDecimal())?.setScale(2) ?: BigDecimal.ZERO
 
         // Esto pasa cuando es una compra de contado
         if (service.debt.compareTo(BigDecimal.ZERO) == 0) {
