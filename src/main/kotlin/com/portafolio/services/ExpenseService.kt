@@ -99,7 +99,40 @@ class ExpenseService {
         endDate: LocalDateTime?,
         expenseType: String?
     ): List<Expense> {
-        return repository.findExpensesWithFilters(walletId, startDate, endDate, expenseType)
+        return when {
+            // Todos los filtros están presentes
+            walletId != null && startDate != null && endDate != null && expenseType != null -> {
+                repository.findByWalletIdAndExpenseTypeAndDateRange(walletId, expenseType, startDate, endDate)
+            }
+            // Solo wallet y fechas
+            walletId != null && startDate != null && endDate != null -> {
+                repository.findByWalletIdAndDateRange(walletId, startDate, endDate)
+            }
+            // Solo tipo de gasto y fechas
+            expenseType != null && startDate != null && endDate != null -> {
+                repository.findByExpenseTypeAndDateRange(expenseType, startDate, endDate)
+            }
+            // Solo fechas
+            startDate != null && endDate != null -> {
+                repository.findByDateRange(startDate, endDate)
+            }
+            // Solo wallet y tipo de gasto
+            walletId != null && expenseType != null -> {
+                repository.findByWalletIdAndExpenseType(walletId, expenseType)
+            }
+            // Solo wallet
+            walletId != null -> {
+                repository.findByWalletId(walletId)
+            }
+            // Solo tipo de gasto
+            expenseType != null -> {
+                repository.findByExpenseType(expenseType)
+            }
+            // Sin filtros - retornar todos
+            else -> {
+                repository.findAll().sortedByDescending { it.expenseDate }
+            }
+        }
     }
 
     fun getUsernameByUserId(applicationUserId: Long): String {

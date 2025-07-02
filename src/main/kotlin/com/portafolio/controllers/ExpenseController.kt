@@ -71,9 +71,18 @@ class ExpenseController {
 
         user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(emptyList())
 
-        // Parse dates
-        val startDate = startDateStr?.let { LocalDateTime.of(LocalDate.parse(it), LocalTime.MIN) }
-        val endDate = endDateStr?.let { LocalDateTime.of(LocalDate.parse(it), LocalTime.MAX) }
+        // Parse dates with error handling
+        val startDate = try {
+            startDateStr?.let { LocalDateTime.of(LocalDate.parse(it), LocalTime.MIN) }
+        } catch (e: Exception) {
+            null
+        }
+        
+        val endDate = try {
+            endDateStr?.let { LocalDateTime.of(LocalDate.parse(it), LocalTime.MAX) }
+        } catch (e: Exception) {
+            null
+        }
 
         val expenses = service.getExpensesWithFilters(walletId, startDate, endDate, expenseType)
 

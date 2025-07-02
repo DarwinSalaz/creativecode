@@ -20,19 +20,68 @@ interface ExpenseRepository: JpaRepository<Expense, Long> {
     """)
     fun findByWalletAndDateRange(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime): List<Expense>
 
+    @Query("SELECT e FROM Expense e WHERE e.walletId = :walletId ORDER BY e.expenseDate DESC")
+    fun findByWalletId(@Param("walletId") walletId: Int): List<Expense>
+
+    @Query("SELECT e FROM Expense e WHERE e.expenseType = :expenseType ORDER BY e.expenseDate DESC")
+    fun findByExpenseType(@Param("expenseType") expenseType: String): List<Expense>
+
     @Query("""
         SELECT e FROM Expense e 
-        WHERE (:walletId IS NULL OR e.walletId = :walletId)
-          AND (:startDate IS NULL OR e.expenseDate >= :startDate)
-          AND (:endDate IS NULL OR e.expenseDate <= :endDate)
-          AND (:expenseType IS NULL OR e.expenseType = :expenseType)
+        WHERE e.walletId = :walletId AND e.expenseType = :expenseType 
         ORDER BY e.expenseDate DESC
     """)
-    fun findExpensesWithFilters(
-        @Param("walletId") walletId: Int?,
-        @Param("startDate") startDate: LocalDateTime?,
-        @Param("endDate") endDate: LocalDateTime?,
-        @Param("expenseType") expenseType: String?
+    fun findByWalletIdAndExpenseType(
+        @Param("walletId") walletId: Int,
+        @Param("expenseType") expenseType: String
+    ): List<Expense>
+
+    @Query("""
+        SELECT e FROM Expense e 
+        WHERE e.walletId = :walletId 
+          AND e.expenseDate BETWEEN :startDate AND :endDate
+        ORDER BY e.expenseDate DESC
+    """)
+    fun findByWalletIdAndDateRange(
+        @Param("walletId") walletId: Int,
+        @Param("startDate") startDate: LocalDateTime,
+        @Param("endDate") endDate: LocalDateTime
+    ): List<Expense>
+
+    @Query("""
+        SELECT e FROM Expense e 
+        WHERE e.expenseType = :expenseType 
+          AND e.expenseDate BETWEEN :startDate AND :endDate
+        ORDER BY e.expenseDate DESC
+    """)
+    fun findByExpenseTypeAndDateRange(
+        @Param("expenseType") expenseType: String,
+        @Param("startDate") startDate: LocalDateTime,
+        @Param("endDate") endDate: LocalDateTime
+    ): List<Expense>
+
+    @Query("""
+        SELECT e FROM Expense e 
+        WHERE e.walletId = :walletId 
+          AND e.expenseType = :expenseType 
+          AND e.expenseDate BETWEEN :startDate AND :endDate
+        ORDER BY e.expenseDate DESC
+    """)
+    fun findByWalletIdAndExpenseTypeAndDateRange(
+        @Param("walletId") walletId: Int,
+        @Param("expenseType") expenseType: String,
+        @Param("startDate") startDate: LocalDateTime,
+        @Param("endDate") endDate: LocalDateTime
+    ): List<Expense>
+
+    @Query("""
+        SELECT e FROM Expense e 
+        WHERE e.expenseDate BETWEEN :startDate AND :endDate
+        ORDER BY e.expenseDate DESC
+    """)
+    fun findByDateRange(
+        @Param("startDate") startDate: LocalDateTime,
+        @Param("endDate") endDate: LocalDateTime
     ): List<Expense>
 
 }
