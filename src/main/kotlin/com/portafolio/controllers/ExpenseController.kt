@@ -2,6 +2,8 @@ package com.portafolio.controllers
 
 import com.portafolio.dtos.ExpenseDto
 import com.portafolio.dtos.ExpenseResumeDto
+import com.portafolio.dtos.ExpenseListResponseDto
+import com.portafolio.dtos.ExpenseDeleteResponseDto
 import com.portafolio.mappers.ExpenseMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
@@ -11,6 +13,9 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 import javax.validation.Valid
 
 @Validated
@@ -29,6 +34,56 @@ class ExpenseController {
 
     @Autowired
     lateinit var service: ExpenseService
+
+    @DeleteMapping("/expense/delete/{expense_id}")
+    fun deleteExpense(@PathVariable("expense_id") expenseId: Long,
+               @RequestHeader("Authorization") authorization: String): ResponseEntity<ExpenseDeleteResponseDto> {
+        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+        val username = applicationUserService.verifyToken(token)
+
+        val user = applicationUserRepository.findByUsername(username)
+
+        user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ExpenseDeleteResponseDto(false, "Usuario no autorizado"))
+
+        val result = service.deleteExpense(expenseId)
+
+        return if (result) {
+            ResponseEntity.ok(ExpenseDeleteResponseDto(true, "Gasto eliminado exitosamente"))
+        } else {
+            ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ExpenseDeleteResponseDto(false, "No se pudo eliminar el gasto"))
+        }
+    }
+
+    @GetMapping("/expense/list")
+    fun listExpenses(
+        @RequestParam("wallet_id", required = false) walletId: Int?,
+        @RequestParam("start_date", required = false) startDateStr: String?,
+        @RequestParam("end_date", required = false) endDateStr: String?,
+        @RequestParam("expense_type", required = false) expenseType: String?,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<List<ExpenseListResponseDto>> {
+        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+        val username = applicationUserService.verifyToken(token)
+
+        val user = applicationUserRepository.findByUsername(username)
+
+        user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(emptyList())
+
+        // Parse dates
+        val startDate = startDateStr?.let { LocalDateTime.of(LocalDate.parse(it), LocalTime.MIN) }
+        val endDate = endDateStr?.let { LocalDateTime.of(LocalDate.parse(it), LocalTime.MAX) }
+
+        val expenses = service.getExpensesWithFilters(walletId, startDate, endDate, expenseType)
+
+        val response = expenses.map { expense ->
+            val expenseUsername = service.getUsernameByUserId(expense.applicationUserId)
+            mapper.mapToListResponse(expense, expenseUsername)
+        }
+
+        return ResponseEntity.ok(response)
+    }
 
     @DeleteMapping("/expense/{expense_id}")
     fun delete(@PathVariable("expense_id") expenseId: Long,

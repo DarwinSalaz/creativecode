@@ -2,8 +2,10 @@ package com.portafolio.mappers
 
 import com.portafolio.dtos.ExpenseDto
 import com.portafolio.dtos.ExpenseResumeDto
+import com.portafolio.dtos.ExpenseListResponseDto
 import com.portafolio.entities.CashMovement
 import com.portafolio.entities.Expense
+import com.portafolio.entities.ApplicationUser
 import com.portafolio.services.Utilities
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
@@ -33,6 +35,17 @@ class ExpenseMapper {
             value = utilities.currencyFormat(cashMovement.value.toPlainString()),
             expenseDate = cashMovement.createdAt.format(formatter),
             justification = cashMovement.justification
+        )
+
+    fun mapToListResponse(expense: Expense, username: String) =
+        ExpenseListResponseDto(
+            expenseId = expense.expenseId,
+            expenseType = expense.expenseType,
+            value = expense.value,
+            expenseDate = expense.expenseDate,
+            justification = expense.justification,
+            walletId = expense.walletId,
+            username = username
         )
 
 }

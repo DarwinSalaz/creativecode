@@ -5,6 +5,7 @@ import com.portafolio.entities.CashMovement
 import com.portafolio.entities.Expense
 import com.portafolio.repositories.CashMovementRepository
 import com.portafolio.repositories.ExpenseRepository
+import com.portafolio.repositories.ApplicationUserRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -22,6 +23,9 @@ class ExpenseService {
 
     @Autowired
     private lateinit var cashMovementRepository: CashMovementRepository
+
+    @Autowired
+    private lateinit var applicationUserRepository: ApplicationUserRepository
 
     @Transactional
     fun deleteExpense(expenseId: Long): Boolean {
@@ -88,4 +92,19 @@ class ExpenseService {
     fun getExpenses(applicationUserId: Long) = repository.getExpenses(applicationUserId)
 
     fun getExpensesByControlId(cashControlId: Long) = cashMovementRepository.getExpensesByCashControlId(cashControlId)
+
+    fun getExpensesWithFilters(
+        walletId: Int?,
+        startDate: LocalDateTime?,
+        endDate: LocalDateTime?,
+        expenseType: String?
+    ): List<Expense> {
+        return repository.findExpensesWithFilters(walletId, startDate, endDate, expenseType)
+    }
+
+    fun getUsernameByUserId(applicationUserId: Long): String {
+        val user = applicationUserRepository.findById(applicationUserId).orElse(null)
+        return user?.username ?: "unknown"
+    }
+
 }
