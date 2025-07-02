@@ -22,4 +22,7 @@ interface CashMovementRepository: JpaRepository<CashMovement, Long> {
     @Transactional
     fun deleteByExpenseId(expenseId: Long)
 
+    @Transactional
+    fun deleteByRevenueId(revenueId: Long)
+
 }

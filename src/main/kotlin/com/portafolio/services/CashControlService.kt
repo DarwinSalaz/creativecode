@@ -80,6 +80,18 @@ class CashControlService {
         return repository.updateCashControlValues(cash, revenues, expenses, commissions, servicesCount, downPayments, cashControl.cashControlId)
     }
 
+    @Transactional
+    fun updateValuesForDeleteRevenues(cashControl: CashControl, value: BigDecimal) {
+        val cash = cashControl.cash.subtract(value)
+        val revenues = cashControl.revenues.subtract(value)
+        val expenses = cashControl.expenses
+        val servicesCount = cashControl.servicesCount
+        val downPayments = cashControl.downPayments ?: BigDecimal.ZERO
+        val commissions = cashControl.commission
+
+        return repository.updateCashControlValues(cash, revenues, expenses, commissions, servicesCount, downPayments, cashControl.cashControlId)
+    }
+
     fun findHistoryCashControlByUser(applicationUserId : Long) = repository.findHistoryCashControlByUser(applicationUserId)
 
     fun findActiveCashControlByUser(applicationUserId : Long) : CashControl {
