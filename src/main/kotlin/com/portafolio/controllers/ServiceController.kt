@@ -213,4 +213,27 @@ class ServiceController {
         return ResponseEntity.ok(mapOf("status" to "ok"))
     }
 
+    @PostMapping("/service/delete")
+    fun deleteService(
+        @Valid @RequestBody deleteServiceRequest: DeleteServiceRequest,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<Any> {
+        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+        val applicationUsername: String = applicationUserService.verifyToken(token)
+        val user = applicationUserRepository.findByUsername(applicationUsername)
+
+        user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
+
+        try {
+            service.deleteService(deleteServiceRequest)
+            return ResponseEntity.ok(mapOf("code" to "ok", "message" to "Servicio eliminado exitosamente"))
+        } catch (e: IllegalArgumentException) {
+            return ResponseEntity.badRequest().body(mapOf("code" to "error", "message" to e.message))
+        } catch (e: Exception) {
+            log.error("Error eliminando servicio", e)
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(mapOf("code" to "error", "message" to "Error interno del servidor"))
+        }
+    }
+
 }

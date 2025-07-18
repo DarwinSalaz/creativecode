@@ -7,4 +7,9 @@ interface ServiceDownPaymentPaymentRepository : JpaRepository<ServiceDownPayment
 
     fun findByPaymentPaymentId(paymentId: Long): List<ServiceDownPaymentPayment>
 
+    @org.springframework.transaction.annotation.Transactional
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("DELETE FROM ServiceDownPaymentPayment s WHERE s.payment.paymentId = :paymentId")
+    fun deleteByPaymentId(paymentId: Long)
+
 }

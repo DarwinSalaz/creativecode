@@ -19,6 +19,9 @@ interface CashMovementRepository: JpaRepository<CashMovement, Long> {
     @Query("SELECT c FROM CashMovement c WHERE c.walletId = ?1 AND c.createdAt BETWEEN ?2 AND ?3")
     fun getCashMovementsByWallet(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime): List<CashMovement>
 
+    @Query("SELECT c FROM CashMovement c WHERE c.serviceId = ?1")
+    fun findCashMovementsByServiceId(serviceId: Long): List<CashMovement>
+
     @Transactional
     fun deleteByExpenseId(expenseId: Long)
 

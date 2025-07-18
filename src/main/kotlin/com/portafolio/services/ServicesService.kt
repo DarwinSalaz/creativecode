@@ -1,21 +1,11 @@
 package com.portafolio.services
 
-import com.itextpdf.kernel.colors.ColorConstants
-import com.itextpdf.kernel.geom.PageSize
-import com.itextpdf.kernel.pdf.PdfDocument
-import com.itextpdf.kernel.pdf.PdfWriter
-import com.itextpdf.layout.Document
-import com.itextpdf.layout.element.Cell
-import com.itextpdf.layout.element.Paragraph
-import com.itextpdf.layout.element.Table
-import com.itextpdf.layout.properties.UnitValue
 import com.portafolio.dtos.*
 import com.portafolio.entities.*
 import com.portafolio.models.ServiceSchedule
 import com.portafolio.repositories.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
-import java.io.ByteArrayOutputStream
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
@@ -384,5 +374,63 @@ class ServicesService(
 
     fun isCustomerInDebit(customerId: Long): Any {
         return repository.hasOverdueServices(customerId)
+    }
+
+    @Transactional
+    fun deleteService(deleteServiceRequest: DeleteServiceRequest) {
+
+        val service = repository.findById(deleteServiceRequest.serviceId).orElseThrow {
+            IllegalArgumentException("Servicio no encontrado")
+        }
+
+        // Validación: si hay más de un CashMovement asociado, no se puede eliminar
+        val cashMovements = cashMovementRepository.findCashMovementsByServiceId(service.serviceId)
+        if (cashMovements.size > 1 || cashMovements.isEmpty()) {
+            throw IllegalArgumentException("No se puede eliminar el servicio porque tiene más de un movimiento de caja asociado.")
+        }
+        val cashMovement = cashMovements.first()
+
+        val cashControlId = cashMovement.cashControlId
+            ?: throw IllegalArgumentException("No se encontró CashMovement para el serviceId dado")
+        val cashControl = cashControlService.findCashControlById(cashControlId)
+            ?: throw IllegalArgumentException("No se encontró CashControl para el id dado")
+
+
+        var commission = cashMovement.commission
+
+        //  initialPayment?.subtract(commission)?.setScale(2) ?: BigDecimal.ZERO
+        val deposit = cashMovement.value
+        //val transactionValue = service.downPayment.add(initialPayment ?: BigDecimal.ZERO)
+        val transactionValue = service.downPayment.add(deposit).add(commission)
+
+
+        cashControlService.updateValueForInputCash(
+            cashControl,
+            transactionValue.multiply((-1).toBigDecimal()),
+            commission.multiply((-1).toBigDecimal()),
+            service.downPayment.multiply((-1).toBigDecimal()),
+            false,
+            true
+        )
+
+        // Update product left quantity
+        service.serviceProducts.forEach { p ->
+            val product = productRepository.findById(p.productId).orElse(null)
+            val leftQuantity = product?.leftQuantity ?: 0
+            if (product != null && p.quantity > 0) {
+                product.leftQuantity = leftQuantity + p.quantity
+                productRepository.save(product)
+            }
+        }
+
+        if (cashMovement.paymentId != null) {
+            paymentService.deletePayment(cashMovement.paymentId!!)
+        }
+
+        cashMovementRepository.delete(cashMovement)
+
+        if (service.payDownInInstallments && service.downPayment > BigDecimal.ZERO && cashMovement.paymentId != null) {
+            serviceDownPaymentPaymentRepository.deleteByPaymentId(cashMovement.paymentId!!)
+        }
     }
 }

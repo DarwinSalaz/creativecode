@@ -49,13 +49,12 @@ class PaymentService {
 
         //validate if the user has an active cash control
         val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
-        val cashControlId: Long
         val commission = payment.value.multiply(0.12.toBigDecimal())
         val transactionValue = payment.value.add(depositPayment ?: BigDecimal.ZERO)
 
         cashControlService.updateValueForInputCash(activeCashControl, transactionValue, commission, depositPayment ?: BigDecimal.ZERO, false)
 
-        cashControlId = activeCashControl.cashControlId
+        val cashControlId: Long = activeCashControl.cashControlId
 
         val service = servicesService.updateServiceForPayment(payment.serviceId, transactionValue, nextPaymentDate, depositPayment)
         val customer = customerRepository.findById(service.customerId).get()
@@ -135,6 +134,15 @@ class PaymentService {
         cashMovementRepository.save(cashMovement)
 
         return payment
+    }
+
+    fun findById(paymentId: Long): Payment {
+        return repository.findById(paymentId).get()
+    }
+
+    @Transactional
+    fun deletePayment(paymentId: Long) {
+        repository.deleteById(paymentId)
     }
 
 }
