@@ -423,14 +423,16 @@ class ServicesService(
             }
         }
 
+        if (service.payDownInInstallments && service.downPayment > BigDecimal.ZERO && cashMovement.paymentId != null) {
+            serviceDownPaymentPaymentRepository.deleteByPaymentId(cashMovement.paymentId!!)
+        }
+
         if (cashMovement.paymentId != null) {
             paymentService.deletePayment(cashMovement.paymentId!!)
         }
 
         cashMovementRepository.delete(cashMovement)
 
-        if (service.payDownInInstallments && service.downPayment > BigDecimal.ZERO && cashMovement.paymentId != null) {
-            serviceDownPaymentPaymentRepository.deleteByPaymentId(cashMovement.paymentId!!)
-        }
+        repository.delete(service)
     }
 }
