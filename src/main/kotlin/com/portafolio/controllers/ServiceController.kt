@@ -232,7 +232,7 @@ class ServiceController {
         } catch (e: Exception) {
             log.error("Error eliminando servicio", e)
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(mapOf("code" to "error", "message" to "Error interno del servidor"))
+                .body(mapOf("code" to "error", "message" to (e.message ?: "Error interno del servidor")))
         }
     }
 
