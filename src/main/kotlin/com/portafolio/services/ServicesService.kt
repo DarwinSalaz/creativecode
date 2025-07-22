@@ -427,11 +427,11 @@ class ServicesService(
             serviceDownPaymentPaymentRepository.deleteByPaymentId(cashMovement.paymentId!!)
         }
 
+        cashMovementRepository.delete(cashMovement)
+
         if (cashMovement.paymentId != null) {
             paymentService.deletePayment(cashMovement.paymentId!!)
         }
-
-        cashMovementRepository.delete(cashMovement)
 
         repository.delete(service)
     }
