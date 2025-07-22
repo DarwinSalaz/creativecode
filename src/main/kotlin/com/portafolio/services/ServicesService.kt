@@ -402,7 +402,7 @@ class ServicesService(
 
         cashControlService.updateValueForInputCash(
             cashControl,
-            BigDecimal.ZERO,
+            service.downPayment.multiply((-1).toBigDecimal()),
             BigDecimal.ZERO,
             service.downPayment.multiply((-1).toBigDecimal()),
             false,
