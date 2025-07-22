@@ -45,6 +45,9 @@ class ServicesService(
     @Autowired
     private lateinit var paymentService: PaymentService
 
+    @Autowired
+    private lateinit var paymentRepository: PaymentRepository
+
     //@Autowired
     //private lateinit var paymentScheduleRepository: PaymentScheduleRepository
 
@@ -383,31 +386,24 @@ class ServicesService(
             IllegalArgumentException("Servicio no encontrado")
         }
 
-        // Validación: si hay más de un CashMovement asociado, no se puede eliminar
-        val cashMovements = cashMovementRepository.findCashMovementsByServiceId(service.serviceId)
-        if (cashMovements.size > 1 || cashMovements.isEmpty()) {
-            throw IllegalArgumentException("No se puede eliminar el servicio porque tiene más de un movimiento de caja asociado.")
-        }
-        val cashMovement = cashMovements.first()
+        val activePayments = paymentRepository.findAllPaymentsByServiceId(service.serviceId)?.
+                filter { it.status != "canceled" }
 
-        val cashControlId = cashMovement.cashControlId
+        if (activePayments != null && activePayments.size > 1) {
+            throw IllegalArgumentException("No se puede eliminar el servicio porque tiene más de un pago asociado.")
+        }
+
+        val cashMovementService = cashMovementRepository.findCashMovementsByServiceId(service.serviceId).first()
+
+        val cashControlId = cashMovementService.cashControlId
             ?: throw IllegalArgumentException("No se encontró CashMovement para el serviceId dado")
         val cashControl = cashControlService.findCashControlById(cashControlId)
             ?: throw IllegalArgumentException("No se encontró CashControl para el id dado")
 
-
-        var commission = cashMovement.commission
-
-        //  initialPayment?.subtract(commission)?.setScale(2) ?: BigDecimal.ZERO
-        val deposit = cashMovement.value
-        //val transactionValue = service.downPayment.add(initialPayment ?: BigDecimal.ZERO)
-        val transactionValue = service.downPayment.add(deposit).add(commission)
-
-
         cashControlService.updateValueForInputCash(
             cashControl,
-            transactionValue.multiply((-1).toBigDecimal()),
-            commission.multiply((-1).toBigDecimal()),
+            BigDecimal.ZERO,
+            BigDecimal.ZERO,
             service.downPayment.multiply((-1).toBigDecimal()),
             false,
             true
@@ -423,16 +419,28 @@ class ServicesService(
             }
         }
 
-        if (service.payDownInInstallments && service.downPayment > BigDecimal.ZERO && cashMovement.paymentId != null) {
-            serviceDownPaymentPaymentRepository.deleteByPaymentId(cashMovement.paymentId!!)
-        }
+        val customer = customerRepository.findById(service.customerId).get()
+        val customerName = customer.name + if (customer.lastName != null) " " + customer.lastName else ""
 
-        cashMovementRepository.delete(cashMovement)
+        val cashMovement = CashMovement(
+            cashMovementType = "delete_service",
+            movementType = "OUT",
+            applicationUserId = service.applicationUserId,
+            paymentId = null,
+            serviceId = service.serviceId,
+            value = BigDecimal.ZERO,
+            description = customerName,
+            cashControlId = cashControlId,
+            commission = BigDecimal.ZERO,
+            downPayments = service.downPayment,
+            walletId = service.walletId,
+            expenseId = null,
+            revenueId = null
+        )
 
-        if (cashMovement.paymentId != null) {
-            paymentService.deletePayment(cashMovement.paymentId!!)
-        }
+        cashMovementRepository.save(cashMovement)
 
-        repository.delete(service)
+        service.state = "deleted"
+        repository.save(service)
     }
 }
