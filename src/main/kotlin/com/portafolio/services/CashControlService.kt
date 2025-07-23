@@ -13,7 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDateTime
-import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import javax.transaction.Transactional
@@ -167,17 +166,20 @@ class CashControlService {
         val endsDate = LocalDateTime.now().withHour(23).withMinute(59).withSecond(59)
         val period = startsDate.toLocalDate().format(formatter) + "/" + endsDate.toLocalDate().format(formatter)
         var inputs = movements.filter { it.movementType == "IN" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
-        val cancelPayments = movements.filter { it.movementType == "OUT" && it.cashMovementType == "cancel_payment" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val cancelPayments = movements.filter { it.movementType == "OUT" && it.isCancelPaymentOrDeleteService() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         inputs = inputs.subtract(cancelPayments)
 
-        val expenses = movements.filter { it.movementType == "OUT" && it.cashMovementType != "cancel_payment" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val expenses = movements.filter { it.movementType == "OUT" && it.isCancelPaymentOrDeleteService() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
 
 
         var commissions = movements.filter { it.movementType == "IN" }.mapNotNull { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
-        val commissionsCanceled = movements.filter { it.movementType == "OUT" && it.cashMovementType == "cancel_payment" }.map { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val commissionsCanceled = movements.filter { it.movementType == "OUT" && it.isCancelPaymentOrDeleteService() }.map { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         commissions = commissions.subtract(commissionsCanceled)
 
-        val downPayments = movements.filter { it.movementType == "IN" }.map { it.downPayments }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        var downPayments = movements.filter { it.movementType == "IN" }.map { it.downPayments }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val downPaymentsCanceled = movements.filter { it.movementType == "OUT" && it.isCancelPaymentOrDeleteService() }.map { it.downPayments }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        downPayments = downPayments.subtract(downPaymentsCanceled)
+
         val cash = inputs.subtract(expenses)
         val revenues = inputs.add(commissions).add(downPayments)
 

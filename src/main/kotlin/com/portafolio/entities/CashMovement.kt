@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import javax.persistence.*
-
 @Table(name = "cash_movements")
 @Entity
 data class CashMovement(
@@ -75,4 +74,9 @@ data class CashMovement(
     @Column(name = "created_at")
     var createdAt: LocalDateTime = LocalDateTime.now()
 
-)
+) {
+    fun isCancelPaymentOrDeleteService() :Boolean {
+        return this.cashMovementType == "delete_service" || this.cashMovementType == "cancel_payment"
+    }
+}
+

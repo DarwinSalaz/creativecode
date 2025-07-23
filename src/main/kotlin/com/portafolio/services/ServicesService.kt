@@ -389,7 +389,7 @@ class ServicesService(
         val activePayments = paymentRepository.findAllPaymentsByServiceId(service.serviceId)?.
                 filter { it.status != "canceled" }
 
-        if (activePayments != null && activePayments.size > 0) {
+        if (activePayments != null && activePayments.isNotEmpty()) {
             throw IllegalArgumentException("No se puede eliminar el servicio porque tiene más de un pago asociado.")
         }
 
