@@ -169,7 +169,7 @@ class CashControlService {
         val cancelPayments = movements.filter { it.movementType == "OUT" && it.isCancelPaymentOrDeleteService() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         inputs = inputs.subtract(cancelPayments)
 
-        val expenses = movements.filter { it.movementType == "OUT" && it.isCancelPaymentOrDeleteService() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val expenses = movements.filter { it.movementType == "OUT" && !it.isCancelPaymentOrDeleteService() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
 
 
         var commissions = movements.filter { it.movementType == "IN" }.mapNotNull { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
