@@ -225,7 +225,7 @@ class ServiceController {
         user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
 
         try {
-            service.deleteService(deleteServiceRequest)
+            service.deleteService(deleteServiceRequest, user)
             return ResponseEntity.ok(mapOf("code" to "ok", "message" to "Servicio eliminado exitosamente"))
         } catch (e: IllegalArgumentException) {
             return ResponseEntity.badRequest().body(mapOf("code" to "error", "message" to e.message))

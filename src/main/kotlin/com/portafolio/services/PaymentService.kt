@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import javax.transaction.Transactional
 
 @Service
@@ -93,12 +94,18 @@ class PaymentService {
     }
 
     @Transactional
-    fun cancelPayment(paymentId: Long) : Payment {
+    fun cancelPayment(paymentId: Long, user: ApplicationUser) : Payment {
         val payment = repository.findById(paymentId).get()
         if (payment.status == "canceled") {
             throw IllegalArgumentException("payment already canceled")
         }
-        val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
+        val cashMovementP = cashMovementRepository.findCashMovementsByPaymentId(paymentId).first()
+        val cashControlId = cashMovementP.cashControlId
+            ?: throw IllegalArgumentException("No se encontró CashMovement para el serviceId dado")
+        val cashControl = cashControlService.findCashControlById(cashControlId)
+            ?: throw IllegalArgumentException("No se encontró CashControl para el id dado")
+
+        //val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
         val commission = payment.value.multiply(0.12.toBigDecimal())
 
         val downPayment = serviceDownPaymentPaymentRepository.findByPaymentPaymentId(paymentId)
@@ -106,21 +113,23 @@ class PaymentService {
 
         val transactionValue = payment.value.add(downPaymentValue)
 
-        cashControlService.updateValueForInputCash(activeCashControl, transactionValue.multiply((-1).toBigDecimal()), commission.multiply((-1).toBigDecimal()), downPaymentValue.multiply((-1).toBigDecimal()), false)
+        cashControlService.updateValueForInputCash(cashControl, transactionValue.multiply((-1).toBigDecimal()), commission.multiply((-1).toBigDecimal()), downPaymentValue.multiply((-1).toBigDecimal()), false)
 
-        val cashControlId = activeCashControl.cashControlId
+        //val cashControlId = activeCashControl.cashControlId
 
         val service = servicesService.updateServiceForPayment(payment.serviceId, transactionValue.multiply((-1).toBigDecimal()), null, downPaymentValue.multiply((-1).toBigDecimal()))
         val customer = customerRepository.findById(service.customerId).get()
         val customerName = customer.name + if (customer.lastName != null) " " + customer.lastName else ""
 
         payment.status = "canceled"
+        payment.canceledAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        payment.canceledBy = user.username
         repository.save(payment)
 
         val cashMovement = CashMovement(
             cashMovementType = "cancel_payment",
             movementType = "OUT",
-            applicationUserId = payment.applicationUser.applicationUserId,
+            applicationUserId = user.applicationUserId,
             paymentId = payment.paymentId,
             serviceId = payment.serviceId,
             value = payment.value.subtract(commission),
@@ -140,11 +149,6 @@ class PaymentService {
 
     fun findById(paymentId: Long): Payment {
         return repository.findById(paymentId).get()
-    }
-
-    @Transactional
-    fun deletePayment(paymentId: Long) {
-        repository.deleteById(paymentId)
     }
 
 }

@@ -22,6 +22,9 @@ interface CashMovementRepository: JpaRepository<CashMovement, Long> {
     @Query("SELECT c FROM CashMovement c WHERE c.serviceId = ?1 ORDER BY c.createdAt DESC")
     fun findCashMovementsByServiceId(serviceId: Long): List<CashMovement>
 
+    @Query("SELECT c FROM CashMovement c WHERE c.paymentId = ?1 ORDER BY c.createdAt DESC")
+    fun findCashMovementsByPaymentId(paymentId: Long): List<CashMovement>
+
     @Transactional
     fun deleteByExpenseId(expenseId: Long)
 

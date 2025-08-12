@@ -81,7 +81,13 @@ data class Service (
     var markedAsLost: Boolean = false,
 
     @Column(name = "pay_down_in_installments")
-    val payDownInInstallments: Boolean = false
+    val payDownInInstallments: Boolean = false,
+
+    @Column(name = "deleted_at")
+    var deletedAt: LocalDateTime? = null,
+
+    @Column(name = "deleted_by")
+    var deletedBy: String? = null
 
 ) {
     @JsonProperty("service_products")

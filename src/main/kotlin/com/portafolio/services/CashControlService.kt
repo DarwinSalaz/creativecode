@@ -45,7 +45,6 @@ class CashControlService {
         // 0 + (-0-(-0)-(-1000))
         val cash = cashControl.cash.add(transactionValue.subtract(commissionTransaction).subtract(downPayment))
         // ingresos: saldo actual + valor pagado
-        // 2715450 - 500
         val revenues = cashControl.revenues.add(transactionValue)
         val expenses = cashControl.expenses
         var servicesCount = cashControl.servicesCount
@@ -57,11 +56,27 @@ class CashControlService {
             cashControl.servicesCount
         }
 
-
         // comisiones: saldo actual + comision del abono
         val commission = cashControl.commission.add(commissionTransaction)
         // señas: saldo actual + seña
         val downPayments = cashControl.downPayments?.add(downPayment) ?: BigDecimal.ZERO
+
+        return repository.updateCashControlValues(cash, revenues, expenses, commission, servicesCount, downPayments, cashControl.cashControlId)
+    }
+
+    @Transactional
+    fun updateValueForCancelPayment(cashControl: CashControl, transactionValue: BigDecimal, commissionTransaction: BigDecimal, downPayment: BigDecimal) {
+        // Para cancelaciones: cash = saldo actual - (valor pagado - comision)
+        val cash = cashControl.cash.subtract(transactionValue.subtract(commissionTransaction))
+        // ingresos: saldo actual - valor pagado
+        val revenues = cashControl.revenues.subtract(transactionValue)
+        val expenses = cashControl.expenses
+        val servicesCount = cashControl.servicesCount
+
+        // comisiones: saldo actual - comision del abono
+        val commission = cashControl.commission.subtract(commissionTransaction)
+        // señas: saldo actual - seña
+        val downPayments = cashControl.downPayments?.subtract(downPayment) ?: BigDecimal.ZERO
 
         return repository.updateCashControlValues(cash, revenues, expenses, commission, servicesCount, downPayments, cashControl.cashControlId)
     }
@@ -206,5 +221,71 @@ class CashControlService {
 
     fun findCashControlById(cashControlId: Long): CashControl? {
         return repository.findById(cashControlId).orElse(null)
+    }
+
+    /**
+     * Verifica la consistencia entre el valor de cash en cash_control y la suma de cash_movements
+     * @param cashControlId ID del cash control a verificar
+     * @return true si los valores son consistentes, false si hay discrepancia
+     */
+    fun verifyCashConsistency(cashControlId: Long): Boolean {
+        val cashControl = findCashControlById(cashControlId) ?: return false
+        val movements = cashMovementRepository.findCashMovementsByCashControlId(cashControlId)
+        
+        // Calcular la suma de movimientos IN menos OUT
+        val totalMovements = movements.fold(BigDecimal.ZERO) { acc, movement ->
+            when (movement.movementType) {
+                "IN" -> acc.add(movement.value)
+                "OUT" -> acc.subtract(movement.value)
+                else -> acc
+            }
+        }
+        
+        // Comparar con el valor de cash en cash_control
+        val difference = cashControl.cash.subtract(totalMovements)
+        
+        log.info("Cash Control ID: $cashControlId")
+        log.info("Cash Control Cash: ${cashControl.cash}")
+        log.info("Total Movements: $totalMovements")
+        log.info("Difference: $difference")
+        
+        return difference.abs() < BigDecimal("0.01") // Tolerancia para errores de redondeo
+    }
+
+    /**
+     * Corrige la inconsistencia en cash_control basándose en la suma de cash_movements
+     * @param cashControlId ID del cash control a corregir
+     * @return true si se corrigió exitosamente
+     */
+    @Transactional
+    fun fixCashInconsistency(cashControlId: Long): Boolean {
+        val cashControl = findCashControlById(cashControlId) ?: return false
+        val movements = cashMovementRepository.findCashMovementsByCashControlId(cashControlId)
+        
+        // Calcular el valor correcto basado en los movimientos
+        val correctCash = movements.fold(BigDecimal.ZERO) { acc, movement ->
+            when (movement.movementType) {
+                "IN" -> acc.add(movement.value)
+                "OUT" -> acc.subtract(movement.value)
+                else -> acc
+            }
+        }
+        
+        // Actualizar el cash_control con el valor correcto
+        repository.updateCashControlValues(
+            correctCash,
+            cashControl.revenues,
+            cashControl.expenses,
+            cashControl.commission,
+            cashControl.servicesCount,
+            cashControl.downPayments ?: BigDecimal.ZERO,
+            cashControlId
+        )
+        
+        log.info("Fixed cash inconsistency for Cash Control ID: $cashControlId")
+        log.info("Old cash value: ${cashControl.cash}")
+        log.info("New cash value: $correctCash")
+        
+        return true
     }
 }

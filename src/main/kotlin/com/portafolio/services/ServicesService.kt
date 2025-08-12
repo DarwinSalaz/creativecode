@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import javax.transaction.Transactional
 
 @org.springframework.stereotype.Service
@@ -380,7 +381,7 @@ class ServicesService(
     }
 
     @Transactional
-    fun deleteService(deleteServiceRequest: DeleteServiceRequest) {
+    fun deleteService(deleteServiceRequest: DeleteServiceRequest, user: ApplicationUser) {
 
         val service = repository.findById(deleteServiceRequest.serviceId).orElseThrow {
             IllegalArgumentException("Servicio no encontrado")
@@ -425,7 +426,7 @@ class ServicesService(
         val cashMovement = CashMovement(
             cashMovementType = "delete_service",
             movementType = "OUT",
-            applicationUserId = service.applicationUserId,
+            applicationUserId = user.applicationUserId,
             paymentId = null,
             serviceId = service.serviceId,
             value = BigDecimal.ZERO,
@@ -441,6 +442,8 @@ class ServicesService(
         cashMovementRepository.save(cashMovement)
 
         service.state = "deleted"
+        service.deletedAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+        service.deletedBy = user.username
         repository.save(service)
     }
 }

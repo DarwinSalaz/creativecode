@@ -35,6 +35,14 @@ data class Payment (
 
     @JsonProperty("created_at")
     @Column(name = "created_at")
-    val createdAt: LocalDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+    val createdAt: LocalDateTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
+
+    @JsonProperty("canceled_at")
+    @Column(name = "canceled_at")
+    var canceledAt: LocalDateTime? = null,
+
+    @JsonProperty("canceled_by")
+    @Column(name = "canceled_by")
+    var canceledBy: String? = null
 
 )

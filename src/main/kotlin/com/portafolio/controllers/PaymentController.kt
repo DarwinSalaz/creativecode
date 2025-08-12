@@ -64,7 +64,7 @@ class PaymentController {
         user ?: return null
 
         try {
-            service.cancelPayment(paymentId)
+            service.cancelPayment(paymentId, user)
         } catch (e: IllegalArgumentException) {
             println("exception: ${e.message}")
         }
