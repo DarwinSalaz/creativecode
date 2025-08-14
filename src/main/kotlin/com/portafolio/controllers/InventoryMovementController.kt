@@ -3,8 +3,11 @@ package com.portafolio.controllers
 import com.portafolio.dtos.InventoryMovementRequest
 import com.portafolio.dtos.InventoryMovementResponse
 import com.portafolio.dtos.WalletRequest
+import com.portafolio.repositories.ApplicationUserRepository
+import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.InventoryMovementService
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
@@ -18,18 +21,33 @@ class InventoryMovementController {
     
     @Autowired
     lateinit var inventoryMovementService: InventoryMovementService
+
+    @Autowired
+    lateinit var applicationUserService: ApplicationUserService
+
+    @Autowired
+    lateinit var applicationUserRepository: ApplicationUserRepository
     
     @PostMapping("/movement")
     fun registerMovement(
         @Valid @RequestBody request: InventoryMovementRequest,
-        @RequestHeader("user-id") userId: Long,
-        @RequestHeader("username") username: String
+        @RequestHeader("username") username: String,
+        @RequestHeader("Authorization") authorization: String
     ): ResponseEntity<InventoryMovementResponse> {
         try {
+            val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+            val applicationUsername: String = applicationUserService.verifyToken(token)
+            val user = applicationUserRepository.findByUsername(applicationUsername)
+
+            user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+            // Extraer userId del token JWT (Bearer token)
+            val userId = user.applicationUserId
             val response = inventoryMovementService.registerMovement(request, userId, username)
             return ResponseEntity.ok(response)
         } catch (e: IllegalArgumentException) {
             return ResponseEntity.badRequest().build()
+        } catch (e: Exception) {
+            return ResponseEntity.status(401).build() // Unauthorized
         }
     }
     

@@ -18,7 +18,7 @@ import javax.validation.Valid
 
 @Validated
 @RestController
-@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT])
+@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE])
 class ProductController {
 
     @Autowired
@@ -76,6 +76,21 @@ class ProductController {
     fun inventoryReport(@Valid @RequestBody request: ResumeWalletRequest): List<InventoryDetail> {
 
         return serviceProductService.getInventoryReport(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+    }
+    
+    @DeleteMapping("/product/{id_product}")
+    fun deleteProduct(@PathVariable("id_product") idProduct: Long): ResponseEntity<Map<String, String>> {
+        return try {
+            val product = repository.findById(idProduct)
+            if (product.isPresent) {
+                repository.deleteById(idProduct)
+                ResponseEntity.ok(mapOf("message" to "Producto eliminado exitosamente"))
+            } else {
+                ResponseEntity.notFound().build()
+            }
+        } catch (e: Exception) {
+            ResponseEntity.badRequest().body(mapOf("error" to "No se pudo eliminar el producto: ${e.message}"))
+        }
     }
 
 }
