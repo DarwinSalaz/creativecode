@@ -9,14 +9,15 @@ import com.portafolio.services.InventoryMovementService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.validation.Valid
 
+@Validated
 @RestController
 @CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST])
-@RequestMapping("/api/portfolio/inventory")
 class InventoryMovementController {
     
     @Autowired
@@ -28,7 +29,7 @@ class InventoryMovementController {
     @Autowired
     lateinit var applicationUserRepository: ApplicationUserRepository
     
-    @PostMapping("/movement")
+    @PostMapping("/inventory/movement")
     fun registerMovement(
         @Valid @RequestBody request: InventoryMovementRequest,
         @RequestHeader("username") username: String,
@@ -51,19 +52,19 @@ class InventoryMovementController {
         }
     }
     
-    @PostMapping("/movements")
+    @PostMapping("/inventory/movements")
     fun getMovements(@Valid @RequestBody walletRequest: WalletRequest): ResponseEntity<List<InventoryMovementResponse>> {
         val movements = inventoryMovementService.getMovementsByWalletIds(walletRequest.walletIds!!)
         return ResponseEntity.ok(movements)
     }
     
-    @GetMapping("/movements/product/{productId}")
+    @GetMapping("/inventory/movements/product/{productId}")
     fun getMovementsByProduct(@PathVariable productId: Long): ResponseEntity<List<InventoryMovementResponse>> {
         val movements = inventoryMovementService.getMovementsByProductId(productId)
         return ResponseEntity.ok(movements)
     }
     
-    @PostMapping("/movements/date-range")
+    @PostMapping("/inventory/movements/date-range")
     fun getMovementsByDateRange(
         @RequestParam startDate: String,
         @RequestParam endDate: String,

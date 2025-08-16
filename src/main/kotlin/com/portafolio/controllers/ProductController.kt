@@ -18,7 +18,7 @@ import javax.validation.Valid
 
 @Validated
 @RestController
-@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE])
+@CrossOrigin(origins = ["*"], methods = [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.DELETE, RequestMethod.OPTIONS], allowedHeaders = ["*"])
 class ProductController {
 
     @Autowired
