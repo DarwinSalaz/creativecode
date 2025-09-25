@@ -4,6 +4,8 @@ import com.portafolio.dtos.*
 import com.portafolio.entities.*
 import com.portafolio.models.ServiceSchedule
 import com.portafolio.repositories.*
+import com.portafolio.services.InventoryMovementService
+import com.portafolio.entities.MovementType
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import java.math.BigDecimal
@@ -49,6 +51,9 @@ class ServicesService(
     @Autowired
     private lateinit var paymentRepository: PaymentRepository
 
+    @Autowired
+    private lateinit var inventoryMovementService: InventoryMovementService
+
     //@Autowired
     //private lateinit var paymentScheduleRepository: PaymentScheduleRepository
 
@@ -93,13 +98,33 @@ class ServicesService(
             cashControlId = activeCashControl.cashControlId
         }
 
-        // Update product left quantity
+        // Update product left quantity using inventory movements
         service.serviceProducts.forEach { p ->
             val product = productRepository.findById(p.productId).orElse(null)
-            val leftQuantity = product?.leftQuantity ?: 0
-            if (product != null && leftQuantity > 0 && p.quantity > 0) {
-                product.leftQuantity = leftQuantity - p.quantity
-                productRepository.save(product)
+            if (product != null && p.quantity > 0) {
+                try {
+                    val movementRequest = InventoryMovementRequest(
+                        productId = p.productId,
+                        movementType = MovementType.SALIDA,
+                        quantity = p.quantity,
+                        description = "Venta de servicio #${service.serviceId}",
+                        walletId = service.walletId
+                    )
+                    
+                    inventoryMovementService.registerMovement(
+                        movementRequest, 
+                        service.applicationUserId, 
+                        applicationUser.username
+                    )
+                } catch (e: Exception) {
+                    log.error("Error registering inventory movement for product ${p.productId}: ${e.message}")
+                    // Fallback to direct update if movement fails
+                    val leftQuantity = product.leftQuantity ?: 0
+                    if (leftQuantity >= p.quantity) {
+                        product.leftQuantity = leftQuantity - p.quantity
+                        productRepository.save(product)
+                    }
+                }
             }
         }
 
@@ -209,13 +234,35 @@ class ServicesService(
         serviceProducts.filter { productIdsToCancel.contains(it.productId) }
             .forEach { it.enabled = false }
 
-        // Update product left quantity
-        productIdsToCancel.forEach { p ->
-            val product = productRepository.findById(p).orElse(null)
-            var leftQuantity = product?.leftQuantity ?: 0
+        // Update product left quantity using inventory movements
+        productIdsToCancel.forEach { productId ->
+            val product = productRepository.findById(productId).orElse(null)
             if (product != null) {
-                product.leftQuantity = ++leftQuantity
-                productRepository.save(product)
+                try {
+                    // Find the service product to get the quantity
+                    val serviceProduct = serviceProducts.find { it.productId == productId }
+                    if (serviceProduct != null && serviceProduct.quantity > 0) {
+                        val movementRequest = InventoryMovementRequest(
+                            productId = productId,
+                            movementType = MovementType.ENTRADA,
+                            quantity = serviceProduct.quantity,
+                            description = "Cancelación de servicio #${service.serviceId}",
+                            walletId = service.walletId
+                        )
+                        
+                        inventoryMovementService.registerMovement(
+                            movementRequest, 
+                            applicationUserId, 
+                            "Sistema" // Usuario del sistema para cancelaciones
+                        )
+                    }
+                } catch (e: Exception) {
+                    log.error("Error registering inventory movement for product ${productId}: ${e.message}")
+                    // Fallback to direct update if movement fails
+                    var leftQuantity = product.leftQuantity ?: 0
+                    product.leftQuantity = ++leftQuantity
+                    productRepository.save(product)
+                }
             }
         }
 
@@ -410,13 +457,31 @@ class ServicesService(
             true
         )
 
-        // Update product left quantity
+        // Update product left quantity using inventory movements
         service.serviceProducts.forEach { p ->
             val product = productRepository.findById(p.productId).orElse(null)
-            val leftQuantity = product?.leftQuantity ?: 0
             if (product != null && p.quantity > 0) {
-                product.leftQuantity = leftQuantity + p.quantity
-                productRepository.save(product)
+                try {
+                    val movementRequest = InventoryMovementRequest(
+                        productId = p.productId,
+                        movementType = MovementType.ENTRADA,
+                        quantity = p.quantity,
+                        description = "Eliminación de servicio #${service.serviceId}",
+                        walletId = service.walletId
+                    )
+                    
+                    inventoryMovementService.registerMovement(
+                        movementRequest, 
+                        user.applicationUserId, 
+                        user.username
+                    )
+                } catch (e: Exception) {
+                    log.error("Error registering inventory movement for product ${p.productId}: ${e.message}")
+                    // Fallback to direct update if movement fails
+                    val leftQuantity = product.leftQuantity ?: 0
+                    product.leftQuantity = leftQuantity + p.quantity
+                    productRepository.save(product)
+                }
             }
         }
 

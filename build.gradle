@@ -53,6 +53,11 @@ dependencies {
     implementation("com.itextpdf:itext7-core:8.0.2")
     compile ('com.squareup.retrofit2:converter-jackson:2.4.0')
     implementation group: 'com.opencsv', name: 'opencsv', version: '3.7'
+    
+    // Apache POI dependencies for Excel file processing
+    implementation 'org.apache.poi:poi:5.2.3'
+    implementation 'org.apache.poi:poi-ooxml:5.2.3'
+    implementation 'org.apache.poi:poi-scratchpad:5.2.3'
 
 
     /*
