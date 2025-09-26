@@ -15,10 +15,13 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import javax.persistence.EntityManager
 import javax.transaction.Transactional
 
 @Service
-class CashControlService {
+class CashControlService(
+    private val entityManager: EntityManager
+) {
 
     private val log = LoggerFactory.getLogger(this::class.java)
 
@@ -122,10 +125,10 @@ class CashControlService {
 
     fun findHistoryCashControlByUser(applicationUserId : Long) = repository.findHistoryCashControlByUser(applicationUserId)
 
-    @Transactional
     fun findActiveCashControlByUser(applicationUserId : Long) : CashControl {
 
         var cashControl = repository.findActiveCashControlByUser(applicationUserId)
+        entityManager.refresh(cashControl)
 
         if (cashControl == null) {
             cashControl = CashControl(

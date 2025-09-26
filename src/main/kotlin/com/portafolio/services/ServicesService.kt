@@ -8,11 +8,12 @@ import com.portafolio.services.InventoryMovementService
 import com.portafolio.entities.MovementType
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.transaction.annotation.Propagation
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
-import javax.transaction.Transactional
+import org.springframework.transaction.annotation.Transactional
 
 @org.springframework.stereotype.Service
 class ServicesService(
@@ -57,7 +58,7 @@ class ServicesService(
     //@Autowired
     //private lateinit var paymentScheduleRepository: PaymentScheduleRepository
 
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun save(service: Service, applicationUser: ApplicationUser, initialPayment: BigDecimal?) : Service {
 
         //validate if the user has an active cash control

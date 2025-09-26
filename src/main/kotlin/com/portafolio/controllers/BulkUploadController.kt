@@ -1,6 +1,7 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.*
+import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.BulkUploadService
 import com.portafolio.services.BulkUploadValidationService
 import com.portafolio.services.ApplicationUserService
@@ -28,6 +29,9 @@ class BulkUploadController {
     
     @Autowired
     lateinit var applicationUserService: ApplicationUserService
+
+    @Autowired
+    lateinit var applicationUserRepository: ApplicationUserRepository
     
     @PostMapping("/bulk-upload/validate")
     fun validateFile(
@@ -58,7 +62,10 @@ class BulkUploadController {
     ): ResponseEntity<Any> {
         try {
             val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
-            val username = applicationUserService.verifyToken(token)
+            val applicationUsername : String = applicationUserService.verifyToken(token)
+            val user = applicationUserRepository.findByUsername(applicationUsername)
+
+            user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
             
             // Validar antes de procesar
             val validation = validationService.validateBulkUpload(request)

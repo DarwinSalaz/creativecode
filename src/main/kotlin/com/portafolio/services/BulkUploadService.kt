@@ -157,8 +157,8 @@ class BulkUploadService {
             ))
         }
         
-                // Convertir fecha: aceptar MM/dd/yyyy, yyyy-MM-dd HH:mm:ss o serial numérico de Excel
-                val nextPaymentDateTime = parseNextPaymentDate(record.next_payment_date)
+        // Convertir fecha: aceptar MM/dd/yyyy, yyyy-MM-dd HH:mm:ss o serial numérico de Excel
+        val nextPaymentDateTime = parseNextPaymentDate(record.next_payment_date)
         
         val serviceDto = ServiceDto(
             serviceId = 0L, // Se asignará automáticamente
