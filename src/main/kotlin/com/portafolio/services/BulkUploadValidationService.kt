@@ -16,7 +16,7 @@ class BulkUploadValidationService {
     @Autowired
     lateinit var productRepository: ProductRepository
     
-    private val MAX_RECORDS = 1000
+    private val MAX_RECORDS = 500
     private val DATE_FORMAT_SLASH = DateTimeFormatter.ofPattern("MM/dd/yyyy")
     private val DATE_TIME_FORMAT_DASH = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     

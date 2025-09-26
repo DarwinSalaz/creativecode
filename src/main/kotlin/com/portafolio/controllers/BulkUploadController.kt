@@ -57,8 +57,8 @@ class BulkUploadController {
         @RequestHeader("Authorization") authorization: String
     ): ResponseEntity<Any> {
         try {
-            //val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
-            //val username = applicationUserService.verifyToken(token)
+            val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+            val username = applicationUserService.verifyToken(token)
             
             // Validar antes de procesar
             val validation = validationService.validateBulkUpload(request)

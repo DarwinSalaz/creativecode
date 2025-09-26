@@ -157,12 +157,8 @@ class BulkUploadService {
             ))
         }
         
-                // Convertir fecha: aceptar MM/dd/yyyy o yyyy-MM-dd HH:mm:ss
-                val nextPaymentDateTime = try {
-                    LocalDate.parse(record.next_payment_date, DATE_FORMAT_SLASH).atStartOfDay()
-                } catch (e: Exception) {
-                    LocalDateTime.parse(record.next_payment_date, DATE_TIME_FORMAT_DASH)
-                }
+                // Convertir fecha: aceptar MM/dd/yyyy, yyyy-MM-dd HH:mm:ss o serial numérico de Excel
+                val nextPaymentDateTime = parseNextPaymentDate(record.next_payment_date)
         
         val serviceDto = ServiceDto(
             serviceId = 0L, // Se asignará automáticamente
@@ -193,6 +189,30 @@ class BulkUploadService {
         } else {
             throw Exception("Error registering service: ${response.statusCode} - ${response.body}")
         }
+    }
+
+    private fun parseNextPaymentDate(value: String): LocalDateTime {
+        // Intento 1: MM/dd/yyyy
+        try {
+            return LocalDate.parse(value, DATE_FORMAT_SLASH).atStartOfDay()
+        } catch (_: Exception) {}
+
+        // Intento 2: yyyy-MM-dd HH:mm:ss
+        try {
+            return LocalDateTime.parse(value, DATE_TIME_FORMAT_DASH)
+        } catch (_: Exception) {}
+
+        // Intento 3: serial numérico de Excel (viene como string)
+        try {
+            val serial = value.toDouble()
+            val epoch = java.time.LocalDate.of(1899, 12, 30).atStartOfDay()
+            val days = serial.toLong()
+            val fraction = serial - days
+            val seconds = Math.round(fraction * 24 * 60 * 60).toLong()
+            return epoch.plusDays(days).plusSeconds(seconds)
+        } catch (_: Exception) {}
+
+        throw IllegalArgumentException("Formato de fecha inválido: $value")
     }
 }
 
