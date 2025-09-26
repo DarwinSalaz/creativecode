@@ -40,7 +40,8 @@ class InventoryMovementService {
             MovementType.ENTRADA -> previousQuantity + request.quantity
             MovementType.SALIDA -> {
                 if (previousQuantity < request.quantity) {
-                    throw IllegalArgumentException("Stock insuficiente. Stock actual: $previousQuantity, Cantidad solicitada: ${request.quantity}")
+                    // TODO solventar esto
+                    //throw IllegalArgumentException("Stock insuficiente. Stock actual: $previousQuantity, Cantidad solicitada: ${request.quantity}")
                 }
                 previousQuantity - request.quantity
             }
