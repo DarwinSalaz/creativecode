@@ -14,6 +14,7 @@ import java.io.InputStream
 
 @RestController
 @RequestMapping("/api/portfolio/bulk-upload")
+@CrossOrigin(origins = ["*"], methods = [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.OPTIONS], allowedHeaders = ["*"])
 class BulkUploadController {
     
     @Autowired
