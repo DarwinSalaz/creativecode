@@ -10,11 +10,12 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import org.apache.poi.ss.usermodel.*
+import org.springframework.validation.annotation.Validated
 import java.io.InputStream
 
+@Validated
 @RestController
-@RequestMapping("/api/portfolio/bulk-upload")
-@CrossOrigin(origins = ["*"], methods = [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.OPTIONS], allowedHeaders = ["*"])
+@CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT])
 class BulkUploadController {
     
     @Autowired
@@ -26,7 +27,7 @@ class BulkUploadController {
     @Autowired
     lateinit var applicationUserService: ApplicationUserService
     
-    @PostMapping("/validate")
+    @PostMapping("/bulk-upload/validate")
     fun validateFile(
         @RequestParam("file") file: MultipartFile,
         @RequestParam("wallet_id") walletId: Int,
@@ -48,7 +49,7 @@ class BulkUploadController {
         }
     }
     
-    @PostMapping("/process")
+    @PostMapping("/bulk-upload/process")
     fun processBulkUpload(
         @RequestBody request: BulkUploadRequest,
         @RequestHeader("Authorization") authorization: String
