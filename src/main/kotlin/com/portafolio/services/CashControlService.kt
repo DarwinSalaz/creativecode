@@ -11,12 +11,13 @@ import com.portafolio.repositories.CashMovementRepository
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import javax.persistence.EntityManager
-import javax.transaction.Transactional
+import org.springframework.transaction.annotation.Transactional
 
 @Service
 class CashControlService(
@@ -125,6 +126,7 @@ class CashControlService(
 
     fun findHistoryCashControlByUser(applicationUserId : Long) = repository.findHistoryCashControlByUser(applicationUserId)
 
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     fun findActiveCashControlByUser(applicationUserId : Long) : CashControl {
 
         var cashControl = repository.findActiveCashControlByUser(applicationUserId)
