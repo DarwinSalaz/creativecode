@@ -61,6 +61,9 @@ class CashControlService {
         // señas: saldo actual + seña
         val downPayments = cashControl.downPayments?.add(downPayment) ?: BigDecimal.ZERO
 
+        log.info("Info de actualización cash: ${cash}, revenues: $revenues, downPayments: $downPayments, servicesCount: $servicesCount, cashControl.cashControlId: $cashControl.cashControlId")
+        log.error("ERROR: Info de actualización cash: ${cash}, revenues: $revenues, downPayments: $downPayments, servicesCount: $servicesCount, cashControl.cashControlId: $cashControl.cashControlId")
+
         return repository.updateCashControlValues(cash, revenues, expenses, commission, servicesCount, downPayments, cashControl.cashControlId)
     }
 
@@ -119,6 +122,7 @@ class CashControlService {
 
     fun findHistoryCashControlByUser(applicationUserId : Long) = repository.findHistoryCashControlByUser(applicationUserId)
 
+    @Transactional
     fun findActiveCashControlByUser(applicationUserId : Long) : CashControl {
 
         var cashControl = repository.findActiveCashControlByUser(applicationUserId)

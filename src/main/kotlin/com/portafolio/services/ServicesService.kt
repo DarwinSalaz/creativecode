@@ -61,8 +61,7 @@ class ServicesService(
     fun save(service: Service, applicationUser: ApplicationUser, initialPayment: BigDecimal?) : Service {
 
         //validate if the user has an active cash control
-        val activeCashControl : CashControl? = cashControlService.findActiveCashControlByUser(service.applicationUserId)
-        val cashControlId: Long
+        val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(service.applicationUserId)
 
         var commission = initialPayment?.multiply(0.12.toBigDecimal())?.setScale(2) ?: BigDecimal.ZERO
 
@@ -76,27 +75,9 @@ class ServicesService(
         val deposit = initialPayment?.subtract(commission)?.setScale(2) ?: BigDecimal.ZERO
         val transactionValue = service.downPayment.add(initialPayment ?: BigDecimal.ZERO)
 
-        if(activeCashControl == null) {
-            val cashControl = CashControl(
-                applicationUserId = service.applicationUserId,
-                active = true,
-                cash = BigDecimal.ZERO.add(deposit), // saldo de abono descontando la comision
-                expenses = BigDecimal.ZERO,
-                revenues = transactionValue, // seña  + abono
-                startsDate = LocalDateTime.now(),
-                commission = commission,
-                servicesCount = 1,
-                downPayments = service.downPayment // seña
-            )
+        cashControlService.updateValueForInputCash(activeCashControl, transactionValue, commission, service.downPayment, true)
 
-            val cashControlSaved = cashControlService.save(cashControl)
-
-            cashControlId = cashControlSaved.cashControlId
-        } else {
-            cashControlService.updateValueForInputCash(activeCashControl, transactionValue, commission, service.downPayment, true)
-
-            cashControlId = activeCashControl.cashControlId
-        }
+        val cashControlId: Long = activeCashControl.cashControlId
 
         // Update product left quantity using inventory movements
         service.serviceProducts.forEach { p ->
