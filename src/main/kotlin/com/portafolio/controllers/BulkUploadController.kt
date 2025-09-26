@@ -89,28 +89,50 @@ class BulkUploadController {
             val row = sheet.getRow(i) ?: continue
             
             try {
+                // Column order provided by user (index -> field):
+                // 0: codigo (ignored)
+                // 1: name
+                // 2: last_name
+                // 3: cellphone
+                // 4: email
+                // 5: address
+                // 6: identification_number
+                // 7: gender
+                // 8: observation
+                // 9: product_name
+                // 10: product_quantity
+                // 11: valor_servicio
+                // 12: descuento
+                // 13: valor_total
+                // 14: cuota_inicial
+                // 15: abono
+                // 16: deuda
+                // 17: nro_cuotas
+                // 18: dias_cuota
+                // 19: valor_cuota
+                // 20: next_payment_date
                 val record = BulkUploadRecord(
-                    name = getCellValueAsString(row.getCell(0)),
-                    last_name = getCellValueAsString(row.getCell(1)),
-                    cellphone = getCellValueAsString(row.getCell(2)),
-                    email = getCellValueAsString(row.getCell(3)),
-                    address = getCellValueAsString(row.getCell(4)),
-                    identification_number = getCellValueAsString(row.getCell(5)),
-                    gender = getCellValueAsString(row.getCell(6)),
-                    observation = getCellValueAsString(row.getCell(7)),
-                    valor_servicio = getCellValueAsDouble(row.getCell(8)),
-                    cuota_inicial = getCellValueAsDouble(row.getCell(9)),
-                    descuento = getCellValueAsDouble(row.getCell(10)),
-                    deuda = getCellValueAsDouble(row.getCell(11)),
-                    valor_total = getCellValueAsDouble(row.getCell(12)),
-                    dias_cuota = getCellValueAsInt(row.getCell(13)),
-                    nro_cuotas = getCellValueAsInt(row.getCell(14)),
-                    valor_cuota = getCellValueAsDouble(row.getCell(15)),
-                    abono = getCellValueAsDouble(row.getCell(16)),
-                    next_payment_date = getCellValueAsString(row.getCell(17)),
-                    application_user_id = getCellValueAsLong(row.getCell(18)),
-                    product_name = getCellValueAsString(row.getCell(19)),
-                    product_quantity = getCellValueAsString(row.getCell(20))
+                    name = getCellValueAsString(row.getCell(1)),
+                    last_name = getCellValueAsString(row.getCell(2)),
+                    cellphone = getCellValueAsString(row.getCell(3)),
+                    email = getCellValueAsString(row.getCell(4)),
+                    address = getCellValueAsString(row.getCell(5)),
+                    identification_number = getCellValueAsString(row.getCell(6)),
+                    gender = getCellValueAsString(row.getCell(7)),
+                    observation = getCellValueAsString(row.getCell(8)),
+                    product_name = getCellValueAsString(row.getCell(9)),
+                    product_quantity = getCellValueAsString(row.getCell(10)),
+                    valor_servicio = getCellValueAsDouble(row.getCell(11)),
+                    descuento = getCellValueAsDouble(row.getCell(12)),
+                    valor_total = getCellValueAsDouble(row.getCell(13)),
+                    cuota_inicial = getCellValueAsDouble(row.getCell(14)),
+                    abono = getCellValueAsDouble(row.getCell(15)),
+                    deuda = getCellValueAsDouble(row.getCell(16)),
+                    nro_cuotas = getCellValueAsInt(row.getCell(17)),
+                    dias_cuota = getCellValueAsInt(row.getCell(18)),
+                    valor_cuota = getCellValueAsDouble(row.getCell(19)),
+                    next_payment_date = getCellValueAsString(row.getCell(20))
+                    // application_user_id omitted (not present in file)
                 )
                 records.add(record)
             } catch (e: Exception) {
