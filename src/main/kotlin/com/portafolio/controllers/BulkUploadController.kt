@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
 import org.apache.poi.ss.usermodel.*
+import org.apache.poi.ss.usermodel.DateUtil
+import java.text.SimpleDateFormat
 import org.springframework.validation.annotation.Validated
 import java.io.InputStream
 
@@ -150,12 +152,28 @@ class BulkUploadController {
         
         return when (cell.cellType) {
             CellType.STRING -> cell.stringCellValue ?: ""
-            CellType.NUMERIC -> cell.numericCellValue.toString()
+            CellType.NUMERIC -> {
+                // Detectar fechas en celdas numéricas de Excel y convertir a MM/dd/yyyy
+                if (DateUtil.isCellDateFormatted(cell)) {
+                    val sdf = SimpleDateFormat("MM/dd/yyyy")
+                    return sdf.format(cell.dateCellValue)
+                }
+                cell.numericCellValue.toString()
+            }
             CellType.BOOLEAN -> cell.booleanCellValue.toString()
             CellType.FORMULA -> {
                 try {
+                    // Si la celda de fórmula es fecha, formatear como fecha
+                    if (DateUtil.isCellDateFormatted(cell)) {
+                        val sdf = SimpleDateFormat("MM/dd/yyyy")
+                        return sdf.format(cell.dateCellValue)
+                    }
                     cell.stringCellValue ?: ""
                 } catch (e: Exception) {
+                    if (DateUtil.isCellDateFormatted(cell)) {
+                        val sdf = SimpleDateFormat("MM/dd/yyyy")
+                        return sdf.format(cell.dateCellValue)
+                    }
                     cell.numericCellValue.toString()
                 }
             }

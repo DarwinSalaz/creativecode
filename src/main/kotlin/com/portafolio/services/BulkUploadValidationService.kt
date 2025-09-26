@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @Service
@@ -16,7 +17,8 @@ class BulkUploadValidationService {
     lateinit var productRepository: ProductRepository
     
     private val MAX_RECORDS = 1000
-    private val DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    private val DATE_FORMAT_SLASH = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    private val DATE_TIME_FORMAT_DASH = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     
     fun validateBulkUpload(request: BulkUploadRequest): BulkUploadValidationResponse {
         val errors = mutableListOf<RecordError>()
@@ -77,11 +79,20 @@ class BulkUploadValidationService {
                 }
             }
             
-            // Validar fecha
+            // Validar fecha: aceptar MM/dd/yyyy o yyyy-MM-dd HH:mm:ss
+            var isValidDate = false
             try {
-                LocalDate.parse(record.next_payment_date, DATE_FORMAT)
-            } catch (e: Exception) {
-                recordErrors.add("El formato de fecha debe ser MM/dd/yyyy")
+                LocalDate.parse(record.next_payment_date, DATE_FORMAT_SLASH)
+                isValidDate = true
+            } catch (e: Exception) { /* ignore */ }
+            if (!isValidDate) {
+                try {
+                    LocalDateTime.parse(record.next_payment_date, DATE_TIME_FORMAT_DASH)
+                    isValidDate = true
+                } catch (e: Exception) { /* ignore */ }
+            }
+            if (!isValidDate) {
+                recordErrors.add("El formato de fecha debe ser MM/dd/yyyy o yyyy-MM-dd HH:mm:ss")
             }
             
             // Validar productos

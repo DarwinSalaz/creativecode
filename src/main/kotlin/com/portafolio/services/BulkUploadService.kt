@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.http.ResponseEntity
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
 @org.springframework.stereotype.Service
@@ -26,7 +27,8 @@ class BulkUploadService {
     @Autowired
     lateinit var productController: ProductController
     
-    private val DATE_FORMAT = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    private val DATE_FORMAT_SLASH = DateTimeFormatter.ofPattern("MM/dd/yyyy")
+    private val DATE_TIME_FORMAT_DASH = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     
     fun processBulkUpload(request: BulkUploadRequest, authToken: String): BulkUploadResult {
         val results = mutableListOf<RecordResult>()
@@ -155,9 +157,12 @@ class BulkUploadService {
             ))
         }
         
-        // Convertir fecha
-        val nextPaymentDate = LocalDate.parse(record.next_payment_date, DATE_FORMAT)
-        val nextPaymentDateTime = nextPaymentDate.atStartOfDay()
+                // Convertir fecha: aceptar MM/dd/yyyy o yyyy-MM-dd HH:mm:ss
+                val nextPaymentDateTime = try {
+                    LocalDate.parse(record.next_payment_date, DATE_FORMAT_SLASH).atStartOfDay()
+                } catch (e: Exception) {
+                    LocalDateTime.parse(record.next_payment_date, DATE_TIME_FORMAT_DASH)
+                }
         
         val serviceDto = ServiceDto(
             serviceId = 0L, // Se asignará automáticamente
