@@ -71,7 +71,7 @@ class BulkUploadValidationService {
             )
             
             numericFields.forEach { (field, value) ->
-                if (value <= 0) {
+                if (field != "descuento" && field != "deuda" && value <= 0) {
                     recordErrors.add("El campo '$field' debe ser mayor que 0")
                 }
                 if (value.isInfinite() || value.isNaN()) {
