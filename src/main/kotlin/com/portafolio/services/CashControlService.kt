@@ -130,9 +130,12 @@ class CashControlService(
     fun findActiveCashControlByUser(applicationUserId : Long) : CashControl {
 
         var cashControl = repository.findActiveCashControlByUser(applicationUserId)
-        entityManager.refresh(cashControl)
 
-        if (cashControl == null) {
+        if (cashControl != null) {
+            // Forzar que venga de BD, no del caché
+            entityManager.refresh(cashControl)
+        } else {
+            // Si no existe, lo creamos nuevo
             cashControl = CashControl(
                 applicationUserId = applicationUserId,
                 active = true,
@@ -144,7 +147,6 @@ class CashControlService(
                 startsDate = LocalDateTime.now(),
                 servicesCount = 0
             )
-
             repository.save(cashControl)
         }
 
