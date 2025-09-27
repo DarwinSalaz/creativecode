@@ -15,24 +15,64 @@ import org.apache.poi.ss.usermodel.DateUtil
 import java.text.SimpleDateFormat
 import org.springframework.validation.annotation.Validated
 import java.io.InputStream
+import org.slf4j.LoggerFactory
 
 @Validated
 @RestController
 @CrossOrigin(origins = ["*"], methods= [RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT])
 class BulkUploadController {
-    
+
+    private val log = LoggerFactory.getLogger(this::class.java)
+
     @Autowired
     lateinit var validationService: BulkUploadValidationService
-    
+
     @Autowired
     lateinit var bulkUploadService: BulkUploadService
-    
+
     @Autowired
     lateinit var applicationUserService: ApplicationUserService
 
     @Autowired
     lateinit var applicationUserRepository: ApplicationUserRepository
-    
+
+    @GetMapping("/bulk-upload/template")
+    fun downloadTemplate(): ResponseEntity<Any> {
+        return try {
+            val headers = listOf(
+                "codigo", "name", "last_name", "cellphone", "email", "address",
+                "identification_number", "gender", "observation", "product_name",
+                "product_quantity", "valor_servicio", "descuento", "valor_total",
+                "cuota_inicial", "abono", "deuda", "nro_cuotas", "dias_cuota",
+                "valor_cuota", "next_payment_date"
+            )
+
+            val exampleRow = listOf(
+                "001", "Juan", "Pérez", "3001234567", "juan@email.com", "Calle 123",
+                "12345678", "m", "Cliente ejemplo", "Producto A|Producto B",
+                "1|2", "100000", "5000", "95000", "20000", "10000", "65000",
+                "3", "30", "21666.67", "01/15/2024"
+            )
+
+            ResponseEntity.ok(mapOf(
+                "message" to "Formato de archivo Excel requerido",
+                "headers" to headers,
+                "example" to exampleRow,
+                "instructions" to listOf(
+                    "El archivo debe tener exactamente 21 columnas",
+                    "La primera fila debe contener los encabezados",
+                    "Los productos múltiples se separan con |",
+                    "Las cantidades deben corresponder al mismo orden de productos",
+                    "Las fechas deben estar en formato MM/dd/yyyy",
+                    "Los valores numéricos no deben tener formato de moneda"
+                )
+            ))
+        } catch (e: Exception) {
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(mapOf("error" to "Error generando plantilla: ${e.message}"))
+        }
+    }
+
     @PostMapping("/bulk-upload/validate")
     fun validateFile(
         @RequestParam("file") file: MultipartFile,
@@ -42,19 +82,19 @@ class BulkUploadController {
         try {
             //val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
             //val username = applicationUserService.verifyToken(token)
-            
+
             val records = parseExcelFile(file.inputStream)
             val request = BulkUploadRequest(walletId = walletId, records = records)
             val validation = validationService.validateBulkUpload(request)
-            
+
             return ResponseEntity.ok(validation)
-            
+
         } catch (e: Exception) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(mapOf("error" to "Error procesando archivo: ${e.message}"))
         }
     }
-    
+
     @PostMapping("/bulk-upload/process")
     fun processBulkUpload(
         @RequestBody request: BulkUploadRequest,
@@ -66,37 +106,60 @@ class BulkUploadController {
             val user = applicationUserRepository.findByUsername(applicationUsername)
 
             user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
-            
+
             // Validar antes de procesar
             val validation = validationService.validateBulkUpload(request)
             if (!validation.isValid) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(mapOf("error" to "El archivo contiene errores de validación", "validation" to validation))
             }
-            
+
             val result = bulkUploadService.processBulkUpload(request, authorization)
             return ResponseEntity.ok(result)
-            
+
         } catch (e: Exception) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(mapOf("error" to "Error procesando cargue masivo: ${e.message}"))
         }
     }
-    
+
     private fun parseExcelFile(inputStream: InputStream): List<BulkUploadRecord> {
         val workbook = try {
             WorkbookFactory.create(inputStream)
         } catch (e: Exception) {
             throw IllegalArgumentException("Error al leer el archivo Excel: ${e.message}")
         }
-        
+
         val sheet = workbook.getSheetAt(0)
         val records = mutableListOf<BulkUploadRecord>()
-        
+
+        log.info("Excel info: Total sheets: ${workbook.numberOfSheets}, Sheet name: ${sheet.sheetName}")
+        log.info("Sheet info: First row: ${sheet.firstRowNum}, Last row: ${sheet.lastRowNum}")
+
+        // Verificar si hay al menos 2 filas (header + data)
+        if (sheet.lastRowNum < 1) {
+            throw IllegalArgumentException("El archivo Excel debe tener al menos una fila de datos además del header")
+        }
+
+        // Verificar el header row
+        val headerRow = sheet.getRow(0)
+        if (headerRow == null) {
+            throw IllegalArgumentException("No se encontró fila de encabezados en el archivo Excel")
+        }
+
+        log.info("Header row info: First cell: ${headerRow.firstCellNum}, Last cell: ${headerRow.lastCellNum}, Physical cells: ${headerRow.physicalNumberOfCells}")
+
+        // Verificar que tenga al menos 21 columnas
+        if (headerRow.lastCellNum < 21) {
+            throw IllegalArgumentException("El archivo Excel debe tener al menos 21 columnas. Encontradas: ${headerRow.lastCellNum}")
+        }
+
         // Saltar la primera fila (headers)
         for (i in 1..sheet.lastRowNum) {
             val row = sheet.getRow(i) ?: continue
-            
+
+            log.info("Processing row $i: First cell: ${row.firstCellNum}, Last cell: ${row.lastCellNum}, Physical cells: ${row.physicalNumberOfCells}")
+
             try {
                 // Column order provided by user (index -> field):
                 // 0: codigo (ignored)
@@ -144,87 +207,157 @@ class BulkUploadController {
                     // application_user_id omitted (not present in file)
                 )
                 records.add(record)
+                log.info("Successfully parsed row $i")
             } catch (e: Exception) {
+                log.error("Error parsing row $i: ${e.message}")
+                log.error("Exception type: ${e.javaClass.simpleName}")
+                log.error("Stack trace:", e)
                 // Saltar filas con errores de parsing
                 continue
             }
         }
-        
+
         workbook.close()
         return records
     }
-    
+
     private fun getCellValueAsString(cell: Cell?): String {
         if (cell == null) return ""
-        
-        return when (cell.cellType) {
-            CellType.STRING -> cell.stringCellValue ?: ""
-            CellType.NUMERIC -> {
-                // Detectar fechas en celdas numéricas de Excel y convertir a MM/dd/yyyy
-                if (DateUtil.isCellDateFormatted(cell)) {
-                    val sdf = SimpleDateFormat("MM/dd/yyyy")
-                    return sdf.format(cell.dateCellValue)
-                }
-                cell.numericCellValue.toString()
-            }
-            CellType.BOOLEAN -> cell.booleanCellValue.toString()
-            CellType.FORMULA -> {
-                try {
-                    // Si la celda de fórmula es fecha, formatear como fecha
+
+        return try {
+            when (cell.cellType) {
+                CellType.STRING -> cell.stringCellValue ?: ""
+                CellType.NUMERIC -> {
+                    // Detectar fechas en celdas numéricas de Excel y convertir a MM/dd/yyyy
                     if (DateUtil.isCellDateFormatted(cell)) {
                         val sdf = SimpleDateFormat("MM/dd/yyyy")
                         return sdf.format(cell.dateCellValue)
                     }
-                    cell.stringCellValue ?: ""
-                } catch (e: Exception) {
-                    if (DateUtil.isCellDateFormatted(cell)) {
-                        val sdf = SimpleDateFormat("MM/dd/yyyy")
-                        return sdf.format(cell.dateCellValue)
+                    // Para números enteros, no mostrar decimales
+                    val numValue = cell.numericCellValue
+                    if (numValue == numValue.toLong().toDouble()) {
+                        numValue.toLong().toString()
+                    } else {
+                        numValue.toString()
                     }
-                    cell.numericCellValue.toString()
+                }
+                CellType.BOOLEAN -> cell.booleanCellValue.toString()
+                CellType.FORMULA -> {
+                    try {
+                        // Si la celda de fórmula es fecha, formatear como fecha
+                        if (DateUtil.isCellDateFormatted(cell)) {
+                            val sdf = SimpleDateFormat("MM/dd/yyyy")
+                            return sdf.format(cell.dateCellValue)
+                        }
+                        // Intentar obtener el valor como string primero
+                        try {
+                            cell.stringCellValue ?: ""
+                        } catch (e: Exception) {
+                            val numValue = cell.numericCellValue
+                            if (numValue == numValue.toLong().toDouble()) {
+                                numValue.toLong().toString()
+                            } else {
+                                numValue.toString()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        log.warn("Error processing formula cell: ${e.message}")
+                        ""
+                    }
+                }
+                CellType.BLANK -> ""
+                else -> {
+                    log.warn("Unknown cell type: ${cell.cellType}")
+                    ""
                 }
             }
-            else -> ""
+        } catch (e: Exception) {
+            log.warn("Error getting cell value as string: ${e.message}")
+            ""
         }
     }
-    
+
     private fun getCellValueAsDouble(cell: Cell?): Double {
         if (cell == null) return 0.0
-        
-        return when (cell.cellType) {
-            CellType.NUMERIC -> cell.numericCellValue
-            CellType.STRING -> cell.stringCellValue?.toDoubleOrNull() ?: 0.0
-            CellType.FORMULA -> {
-                try {
-                    cell.numericCellValue
-                } catch (e: Exception) {
-                    cell.stringCellValue?.toDoubleOrNull() ?: 0.0
+
+        return try {
+            when (cell.cellType) {
+                CellType.NUMERIC -> cell.numericCellValue
+                CellType.STRING -> {
+                    val stringValue = cell.stringCellValue?.trim()
+                    if (stringValue.isNullOrEmpty()) {
+                        0.0
+                    } else {
+                        stringValue.toDoubleOrNull() ?: 0.0
+                    }
+                }
+                CellType.FORMULA -> {
+                    try {
+                        cell.numericCellValue
+                    } catch (e: Exception) {
+                        try {
+                            val stringValue = cell.stringCellValue?.trim()
+                            stringValue?.toDoubleOrNull() ?: 0.0
+                        } catch (e2: Exception) {
+                            log.warn("Error getting formula cell value as double: ${e2.message}")
+                            0.0
+                        }
+                    }
+                }
+                CellType.BLANK -> 0.0
+                else -> {
+                    log.warn("Cannot convert cell type ${cell.cellType} to double")
+                    0.0
                 }
             }
-            else -> 0.0
+        } catch (e: Exception) {
+            log.warn("Error getting cell value as double: ${e.message}")
+            0.0
         }
     }
-    
+
     private fun getCellValueAsInt(cell: Cell?): Int {
         if (cell == null) return 0
-        
-        return when (cell.cellType) {
-            CellType.NUMERIC -> cell.numericCellValue.toInt()
-            CellType.STRING -> cell.stringCellValue?.toIntOrNull() ?: 0
-            CellType.FORMULA -> {
-                try {
-                    cell.numericCellValue.toInt()
-                } catch (e: Exception) {
-                    cell.stringCellValue?.toIntOrNull() ?: 0
+
+        return try {
+            when (cell.cellType) {
+                CellType.NUMERIC -> cell.numericCellValue.toInt()
+                CellType.STRING -> {
+                    val stringValue = cell.stringCellValue?.trim()
+                    if (stringValue.isNullOrEmpty()) {
+                        0
+                    } else {
+                        stringValue.toIntOrNull() ?: 0
+                    }
+                }
+                CellType.FORMULA -> {
+                    try {
+                        cell.numericCellValue.toInt()
+                    } catch (e: Exception) {
+                        try {
+                            val stringValue = cell.stringCellValue?.trim()
+                            stringValue?.toIntOrNull() ?: 0
+                        } catch (e2: Exception) {
+                            log.warn("Error getting formula cell value as int: ${e2.message}")
+                            0
+                        }
+                    }
+                }
+                CellType.BLANK -> 0
+                else -> {
+                    log.warn("Cannot convert cell type ${cell.cellType} to int")
+                    0
                 }
             }
-            else -> 0
+        } catch (e: Exception) {
+            log.warn("Error getting cell value as int: ${e.message}")
+            0
         }
     }
-    
+
     private fun getCellValueAsLong(cell: Cell?): Long? {
         if (cell == null) return null
-        
+
         return when (cell.cellType) {
             CellType.NUMERIC -> cell.numericCellValue.toLong()
             CellType.STRING -> cell.stringCellValue?.toLongOrNull()
