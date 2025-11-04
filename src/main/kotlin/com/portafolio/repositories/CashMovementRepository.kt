@@ -31,4 +31,7 @@ interface CashMovementRepository: JpaRepository<CashMovement, Long> {
     @Transactional
     fun deleteByRevenueId(revenueId: Long)
 
+    @Query("SELECT c FROM CashMovement c WHERE c.applicationUserId = ?1 AND c.createdAt BETWEEN ?2 AND ?3 ORDER BY c.createdAt DESC")
+    fun findCashMovementsByUserAndDateRange(applicationUserId: Long, startsAt: LocalDateTime, endsAt: LocalDateTime): List<CashMovement>
+
 }
