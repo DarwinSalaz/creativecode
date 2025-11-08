@@ -30,11 +30,17 @@ data class RevenueUploadRecord(
 )
 
 data class BulkRevenueValidationResponse(
+    @JsonProperty("isValid")
     val isValid: Boolean,
+    @JsonProperty("totalRecords")
     val totalRecords: Int,
+    @JsonProperty("validRecords")
     val validRecords: Int,
+    @JsonProperty("invalidRecords")
     val invalidRecords: Int,
+    @JsonProperty("errors")
     val errors: List<RevenueRecordError>,
+    @JsonProperty("summary")
     val summary: RevenueUploadSummary
 )
 

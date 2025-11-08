@@ -68,9 +68,12 @@ class BulkRevenueUploadValidationService {
         }
 
         val invalidRecords = request.records.size - validRecords
+        val isValid = errors.isEmpty()
+
+        log.info("Validation completed: totalRecords=${request.records.size}, validRecords=$validRecords, invalidRecords=$invalidRecords, errors.size=${errors.size}, isValid=$isValid")
 
         return BulkRevenueValidationResponse(
-            isValid = errors.isEmpty(),
+            isValid = isValid,
             totalRecords = request.records.size,
             validRecords = validRecords,
             invalidRecords = invalidRecords,

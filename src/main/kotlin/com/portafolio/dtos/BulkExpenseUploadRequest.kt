@@ -30,11 +30,17 @@ data class ExpenseUploadRecord(
 )
 
 data class BulkExpenseValidationResponse(
+    @JsonProperty("isValid")
     val isValid: Boolean,
+    @JsonProperty("totalRecords")
     val totalRecords: Int,
+    @JsonProperty("validRecords")
     val validRecords: Int,
+    @JsonProperty("invalidRecords")
     val invalidRecords: Int,
+    @JsonProperty("errors")
     val errors: List<ExpenseRecordError>,
+    @JsonProperty("summary")
     val summary: ExpenseUploadSummary
 )
 
