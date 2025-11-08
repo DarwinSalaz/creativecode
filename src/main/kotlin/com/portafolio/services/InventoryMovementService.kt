@@ -4,7 +4,6 @@ import com.portafolio.dtos.InventoryMovementRequest
 import com.portafolio.dtos.InventoryMovementResponse
 import com.portafolio.entities.InventoryMovement
 import com.portafolio.entities.MovementType
-import com.portafolio.entities.Product
 import com.portafolio.repositories.InventoryMovementRepository
 import com.portafolio.repositories.ProductRepository
 import com.portafolio.repositories.WalletRepository

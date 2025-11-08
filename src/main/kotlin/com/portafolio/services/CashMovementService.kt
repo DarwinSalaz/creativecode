@@ -90,7 +90,7 @@ class CashMovementService {
         // Mapear movimientos a DTO detallado
         val movementsDto = movements.map { movement ->
             val walletName = if (movement.walletId != null) {
-                walletRepository.findById(movement.walletId)?.get()?.name
+                walletRepository.findById(movement.walletId!!)?.get()?.name
             } else null
             
             UserMovementDetailDto(
