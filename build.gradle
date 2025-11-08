@@ -47,7 +47,7 @@ dependencies {
     compile('org.hibernate:hibernate-java8:5.3.3.Final')
     compile('org.hibernate:hibernate-jcache:5.3.3.Final')
     compile('com.vladmihalcea:hibernate-types-52:2.2.2')
-    compile('org.postgresql:postgresql:42.2.4')
+    compile('org.postgresql:postgresql:42.7.3')
     compile('org.slf4j:jcl-over-slf4j:1.7.25')
     implementation('javax.xml.bind:jaxb-api:2.3.0')
     implementation("com.itextpdf:itext7-core:8.0.2")
