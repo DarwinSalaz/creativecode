@@ -12,17 +12,17 @@ import java.time.LocalDateTime
 @Repository
 interface ServiceRepository: JpaRepository<Service, Long> {
 
-    @Query("SELECT s FROM Service s WHERE s.customerId = ?1 and s.state in ('created', 'paying', 'fully_paid')")
+    @Query("SELECT s FROM Service s WHERE s.customerId = ?1 and s.state in ('created', 'paying', 'fully_paid') and s.deletedAt IS NULL")
     fun findAllServicesByUser(customerId : Long) : List<Service>?
 
     @Modifying
     @Query("UPDATE Service s SET s.debt = s.debt - ?1, s.nextPaymentDate = ?2 where s.serviceId = ?3")
     fun updateDebtService(value : BigDecimal, nextPaymentDate: LocalDateTime?, serviceId: Long)
 
-    @Query("SELECT new com.portafolio.models.ServiceSchedule(c.customerId, c.name, c.lastName, c.icon, s.feeValue, s.nextPaymentDate, s.hasExpiredPayment) FROM Service s INNER JOIN Customer c ON (s.customerId = c.customerId) WHERE c.walletId in ?1 and s.state in ('created', 'paying')")
+    @Query("SELECT new com.portafolio.models.ServiceSchedule(c.customerId, c.name, c.lastName, c.icon, s.feeValue, s.nextPaymentDate, s.hasExpiredPayment) FROM Service s INNER JOIN Customer c ON (s.customerId = c.customerId) WHERE c.walletId in ?1 and s.state in ('created', 'paying') and s.deletedAt IS NULL")
     fun findServicesSchedule(walletIds: List<Int>) : List<ServiceSchedule>?
 
-    @Query("SELECT new com.portafolio.models.ServiceSchedule(c.customerId, c.name, c.lastName, c.icon, s.feeValue, s.nextPaymentDate, s.hasExpiredPayment) FROM Service s INNER JOIN Customer c ON (s.customerId = c.customerId) WHERE s.state in ('created', 'paying')")
+    @Query("SELECT new com.portafolio.models.ServiceSchedule(c.customerId, c.name, c.lastName, c.icon, s.feeValue, s.nextPaymentDate, s.hasExpiredPayment) FROM Service s INNER JOIN Customer c ON (s.customerId = c.customerId) WHERE s.state in ('created', 'paying') and s.deletedAt IS NULL")
     fun findServicesSchedule() : List<ServiceSchedule>?
 
     @Modifying
@@ -47,7 +47,7 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "       INNER JOIN wallets w ON (s.wallet_id = w.wallet_id)\n" +
             "       INNER JOIN application_users u USING (application_user_id)\n" +
             " WHERE s.created_at BETWEEN ?2 AND ?3\n" +
-            "   AND s.state != 'canceled'\n" +
+            "   AND s.state NOT IN ('canceled', 'deleted')\n" +
             "   AND s.wallet_id = ?1\n" +
             " GROUP BY s.service_id, client, s.service_value, s.discount, s.total_value, s.debt, w.name, u.username, s.created_at\n" +
             " ORDER BY s.created_at ASC")
@@ -69,7 +69,7 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "inner join customers c using (customer_id)\n" +
             "inner join wallets w on (s.wallet_id = w.wallet_id)\n" +
             "inner join application_users u on (p.application_user_id = u.application_user_id)\n" +
-            "where s.wallet_id = ?1 and p.status != 'canceled' and s.state != 'canceled' and\n" +
+            "where s.wallet_id = ?1 and p.status != 'canceled' and s.state NOT IN ('canceled', 'deleted') and\n" +
             "p.created_at between ?2 and ?3")
     fun reportPayments(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<PaymentReportInterface>
 
@@ -98,8 +98,7 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "inner join customers c on s.customer_id = c.customer_id\n" +
             "where \n" +
             "    s.wallet_id = ?1 \n" +
-            "    and s.state != 'fully_paid' \n" +
-            "    and s.state != 'canceled' \n" +
+            "    and s.state NOT IN ('fully_paid', 'canceled', 'deleted') \n" +
             "    and s.next_payment_date < CURRENT_DATE\n" +
             "    and s.created_at between ?2 and ?3\n")
     fun reportExpiredServices(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ExpiredServiceReportInterface>
@@ -128,8 +127,7 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "inner join customers c on s.customer_id = c.customer_id\n" +
             "where \n" +
             "    s.wallet_id = ?1 \n" +
-            "    and s.state != 'fully_paid' \n" +
-            "    and s.state != 'canceled' and marked_for_withdrawal = true \n" +
+            "    and s.state NOT IN ('fully_paid', 'canceled', 'deleted') and marked_for_withdrawal = true \n" +
             "    and s.next_payment_date < CURRENT_DATE\n" +
             "    and s.created_at between ?2 and ?3\n")
     fun reportMarkedForWithdrawalServices(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ExpiredServiceReportInterface>
@@ -168,7 +166,8 @@ interface ServiceRepository: JpaRepository<Service, Long> {
         SELECT CASE WHEN COUNT(s) > 0 THEN TRUE ELSE FALSE END
         FROM Service s
         WHERE s.customerId = :customerId
-          AND s.state NOT IN ('canceled', 'finished')
+          AND s.state NOT IN ('canceled', 'finished', 'deleted')
+          AND s.deletedAt IS NULL
           AND s.nextPaymentDate < CURRENT_TIMESTAMP
         """
     )
@@ -181,7 +180,7 @@ interface ServiceRepository: JpaRepository<Service, Long> {
     JOIN service_products sp ON s.service_id = sp.service_id
     JOIN products p ON p.product_id = sp.product_id
     WHERE s.created_at BETWEEN :start AND :end
-      AND s.state != 'canceled'
+      AND s.state NOT IN ('canceled', 'deleted')
       AND s.wallet_id = :walletId
     GROUP BY p.name
     ORDER BY totalQuantity DESC

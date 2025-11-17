@@ -149,6 +149,18 @@ class BulkRevenueUploadController {
 
             log.info("Processing row $i: First cell: ${row.firstCellNum}, Last cell: ${row.lastCellNum}, Physical cells: ${row.physicalNumberOfCells}")
 
+            // Verificar si la fila tiene datos reales (al menos alguna celda con contenido)
+            val hasData = (0..3).any { colIndex ->
+                val cell = row.getCell(colIndex)
+                val value = getCellValueAsString(cell)
+                value.isNotBlank()
+            }
+
+            if (!hasData) {
+                log.info("Skipping empty row $i")
+                continue
+            }
+
             try {
                 // Column order:
                 // 0: revenue_type
