@@ -17,6 +17,7 @@ interface ExpenseRepository: JpaRepository<Expense, Long> {
         SELECT e FROM Expense e 
         WHERE e.walletId = :walletId 
           AND e.expenseDate BETWEEN :startsAt AND :endsAt
+        ORDER BY e.expenseDate ASC
     """)
     fun findByWalletAndDateRange(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime): List<Expense>
 
