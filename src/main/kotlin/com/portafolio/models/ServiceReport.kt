@@ -27,6 +27,12 @@ data class ServiceReport(
     @JsonProperty("debt")
     var debt: String?,
 
+    @JsonProperty("quantity_of_fees")
+    var quantityOfFees: Int?,
+
+    @JsonProperty("pending_fees")
+    var pendingFees: Int?,
+
     @JsonProperty("wallet")
     var wallet: String?,
 

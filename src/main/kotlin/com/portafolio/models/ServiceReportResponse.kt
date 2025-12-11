@@ -25,14 +25,26 @@ data class ServiceReportResponse(
 )
 
 data class ProductSoldReport(
+    @JsonProperty("product_id")
+    val productId: Int?,
+
     @JsonProperty("product_name")
     val productName: String,
 
     @JsonProperty("total_quantity")
-    val totalQuantity: Int
+    val totalQuantity: Int,
+
+    @JsonProperty("value")
+    val value: String?,
+
+    @JsonProperty("wallet")
+    val wallet: String?
 )
 
 interface ProductSoldReportInt {
+    val productId: Int?
     val productName: String
     val totalQuantity: Int
+    val totalValue: java.math.BigDecimal?
+    val walletName: String?
 }

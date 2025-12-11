@@ -12,6 +12,8 @@ interface ServiceReportInt {
     var discount: BigDecimal?
     var service_value: BigDecimal?
     var debt: BigDecimal?
+    var quantity_of_fees: Int?
+    var pending_fees: Int?
     var wallet: String?
     var username: String?
     var created_at: LocalDateTime?

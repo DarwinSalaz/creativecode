@@ -165,8 +165,11 @@ class ServiceMapper {
         val totalDebt = servicesReportInt.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.debt) }
         val productsData = productsSold.map {
             ProductSoldReport(
+                productId = it.productId,
                 productName = it.productName,
-                totalQuantity = it.totalQuantity
+                totalQuantity = it.totalQuantity,
+                value = it.totalValue?.let { value -> utilities.currencyFormat(value.toString()) },
+                wallet = it.walletName
             )
         }
 
@@ -179,6 +182,8 @@ class ServiceMapper {
                 discount = utilities.currencyFormat(it.discount.toString()),
                 serviceValue = utilities.currencyFormat(it.service_value.toString()),
                 debt = utilities.currencyFormat(it.debt.toString()),
+                quantityOfFees = it.quantity_of_fees,
+                pendingFees = it.pending_fees,
                 wallet = it.wallet,
                 username = it.username,
                 createdAt = it.created_at
@@ -207,6 +212,8 @@ class ServiceMapper {
                 serviceId = it.service_id,
                 value = utilities.currencyFormat(it.value.toString()),
                 debt = utilities.currencyFormat(it.debt.toString()),
+                products = it.products,
+                serviceCreatedAt = it.service_created_at,
                 wallet = it.wallet,
                 username = it.username,
                 createdAt = it.created_at

@@ -37,6 +37,8 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "       s.discount AS discount,\n" +
             "       s.total_value AS service_value,\n" +
             "       s.debt AS debt,\n" +
+            "       s.quantity_of_fees AS quantity_of_fees,\n" +
+            "       s.pending_fees AS pending_fees,\n" +
             "       w.name AS wallet,\n" +
             "       u.username AS username,\n" +
             "       s.created_at AS created_at\n" +
@@ -49,7 +51,7 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             " WHERE s.created_at BETWEEN ?2 AND ?3\n" +
             "   AND s.state NOT IN ('canceled', 'deleted')\n" +
             "   AND s.wallet_id = ?1\n" +
-            " GROUP BY s.service_id, client, s.service_value, s.discount, s.total_value, s.debt, w.name, u.username, s.created_at\n" +
+            " GROUP BY s.service_id, client, s.service_value, s.discount, s.total_value, s.debt, s.quantity_of_fees, s.pending_fees, w.name, u.username, s.created_at\n" +
             " ORDER BY s.created_at ASC")
     fun reportService(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime): List<ServiceReportInt>
 
@@ -61,16 +63,21 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "s.service_id as service_id,\n" +
             "p.value as value,\n" +
             "s.debt as debt,\n" +
+            "STRING_AGG(DISTINCT pr.name || ' x' || sp.quantity, ' \n ') as products,\n" +
+            "s.created_at as service_created_at,\n" +
             "w.name as wallet,\n" +
             "u.username as username,\n" +
             "p.created_at\n" +
             "from payments p \n" +
             "inner join services s using (service_id)\n" +
             "inner join customers c using (customer_id)\n" +
+            "left join service_products sp on s.service_id = sp.service_id\n" +
+            "left join products pr on sp.product_id = pr.product_id\n" +
             "inner join wallets w on (s.wallet_id = w.wallet_id)\n" +
             "inner join application_users u on (p.application_user_id = u.application_user_id)\n" +
             "where s.wallet_id = ?1 and p.status != 'canceled' and s.state NOT IN ('canceled', 'deleted') and\n" +
-            "p.created_at between ?2 and ?3")
+            "p.created_at between ?2 and ?3\n" +
+            "group by p.payment_id, c.name, c.last_name, s.service_id, p.value, s.debt, s.created_at, w.name, u.username, p.created_at")
     fun reportPayments(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<PaymentReportInterface>
 
 
@@ -89,11 +96,14 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "        from payments p \n" +
             "        where p.service_id = s.service_id\n" +
             "    ) as last_payment_date,\n" +
-            "    GREATEST(\n" +
-            "        FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.created_at) / s.days_per_fee) \n" +
-            "        - (s.quantity_of_fees - s.pending_fees),\n" +
-            "        0\n" +
-            "    ) as expired_fees\n" +
+            "    CASE \n" +
+            "        WHEN s.next_payment_date < CURRENT_DATE THEN \n" +
+            "            GREATEST(\n" +
+            "                FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
+            "                0\n" +
+            "            )\n" +
+            "        ELSE 0\n" +
+            "    END as expired_fees\n" +
             "from services s \n" +
             "inner join customers c on s.customer_id = c.customer_id\n" +
             "where \n" +
@@ -118,11 +128,14 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "        from payments p \n" +
             "        where p.service_id = s.service_id\n" +
             "    ) as last_payment_date,\n" +
-            "    GREATEST(\n" +
-            "        FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.created_at) / s.days_per_fee) \n" +
-            "        - (s.quantity_of_fees - s.pending_fees),\n" +
-            "        0\n" +
-            "    ) as expired_fees\n" +
+            "    CASE \n" +
+            "        WHEN s.next_payment_date < CURRENT_DATE THEN \n" +
+            "            GREATEST(\n" +
+            "                FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
+            "                0\n" +
+            "            )\n" +
+            "        ELSE 0\n" +
+            "    END as expired_fees\n" +
             "from services s \n" +
             "inner join customers c on s.customer_id = c.customer_id\n" +
             "where \n" +
@@ -147,11 +160,14 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "        from payments p \n" +
             "        where p.service_id = s.service_id\n" +
             "    ) as last_payment_date,\n" +
-            "    GREATEST(\n" +
-            "        FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.created_at) / s.days_per_fee) \n" +
-            "        - (s.quantity_of_fees - s.pending_fees),\n" +
-            "        0\n" +
-            "    ) as expired_fees\n" +
+            "    CASE \n" +
+            "        WHEN s.next_payment_date < CURRENT_DATE THEN \n" +
+            "            GREATEST(\n" +
+            "                FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
+            "                0\n" +
+            "            )\n" +
+            "        ELSE 0\n" +
+            "    END as expired_fees\n" +
             "from services s \n" +
             "inner join customers c on s.customer_id = c.customer_id\n" +
             "where \n" +
@@ -175,14 +191,19 @@ interface ServiceRepository: JpaRepository<Service, Long> {
 
     @Query(
         """
-    SELECT p.name AS productName, SUM(sp.quantity) AS totalQuantity
+    SELECT p.product_id AS productId,
+           p.name AS productName, 
+           SUM(sp.quantity) AS totalQuantity,
+           SUM(sp.value * sp.quantity) AS totalValue,
+           w.name AS walletName
     FROM services s
     JOIN service_products sp ON s.service_id = sp.service_id
     JOIN products p ON p.product_id = sp.product_id
+    JOIN wallets w ON s.wallet_id = w.wallet_id
     WHERE s.created_at BETWEEN :start AND :end
       AND s.state NOT IN ('canceled', 'deleted')
       AND s.wallet_id = :walletId
-    GROUP BY p.name
+    GROUP BY p.product_id, p.name, w.name
     ORDER BY totalQuantity DESC
     """,
         nativeQuery = true

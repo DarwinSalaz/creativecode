@@ -23,6 +23,12 @@ data class PaymentReport (
     @JsonProperty("debt")
     var debt: String?,
 
+    @JsonProperty("products")
+    var products: String?,
+
+    @JsonProperty("service_created_at")
+    var serviceCreatedAt: LocalDateTime?,
+
     @JsonProperty("wallet")
     var wallet: String?,
 
