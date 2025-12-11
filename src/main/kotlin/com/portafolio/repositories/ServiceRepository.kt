@@ -97,10 +97,13 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "        where p.service_id = s.service_id\n" +
             "    ) as last_payment_date,\n" +
             "    CASE \n" +
-            "        WHEN s.next_payment_date < CURRENT_DATE THEN \n" +
-            "            GREATEST(\n" +
-            "                FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
-            "                0\n" +
+            "        WHEN s.next_payment_date < CURRENT_DATE AND s.days_per_fee > 0 THEN \n" +
+            "            LEAST(\n" +
+            "                s.pending_fees,\n" +
+            "                GREATEST(\n" +
+            "                    FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
+            "                    0\n" +
+            "                )\n" +
             "            )\n" +
             "        ELSE 0\n" +
             "    END as expired_fees\n" +
@@ -129,10 +132,13 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "        where p.service_id = s.service_id\n" +
             "    ) as last_payment_date,\n" +
             "    CASE \n" +
-            "        WHEN s.next_payment_date < CURRENT_DATE THEN \n" +
-            "            GREATEST(\n" +
-            "                FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
-            "                0\n" +
+            "        WHEN s.next_payment_date < CURRENT_DATE AND s.days_per_fee > 0 THEN \n" +
+            "            LEAST(\n" +
+            "                s.pending_fees,\n" +
+                "                GREATEST(\n" +
+                "                    FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
+                "                    0\n" +
+                "                )\n" +
             "            )\n" +
             "        ELSE 0\n" +
             "    END as expired_fees\n" +
@@ -161,10 +167,13 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "        where p.service_id = s.service_id\n" +
             "    ) as last_payment_date,\n" +
             "    CASE \n" +
-            "        WHEN s.next_payment_date < CURRENT_DATE THEN \n" +
-            "            GREATEST(\n" +
-            "                FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
-            "                0\n" +
+            "        WHEN s.next_payment_date < CURRENT_DATE AND s.days_per_fee > 0 THEN \n" +
+            "            LEAST(\n" +
+            "                s.pending_fees,\n" +
+            "                GREATEST(\n" +
+            "                    FLOOR(EXTRACT(DAY FROM CURRENT_DATE - s.next_payment_date) / s.days_per_fee),\n" +
+            "                    0\n" +
+            "                )\n" +
             "            )\n" +
             "        ELSE 0\n" +
             "    END as expired_fees\n" +
