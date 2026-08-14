@@ -60,6 +60,12 @@ data class CashControl (
     var closureNotes: String? = null,
 
     @Column(name = "down_payments")
-    var downPayments: BigDecimal? = null
+    var downPayments: BigDecimal? = null,
+
+    @Column(name = "partial_liquidations_total")
+    var partialLiquidationsTotal: BigDecimal? = BigDecimal.ZERO,
+
+    @Column(name = "final_liquidations_total")
+    var finalLiquidationsTotal: BigDecimal? = BigDecimal.ZERO
 
 )

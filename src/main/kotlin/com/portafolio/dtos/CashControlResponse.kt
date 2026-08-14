@@ -58,6 +58,24 @@ data class CashControlResponse (
     @JsonProperty("down_payments_number")
     val downPaymentsNumber: BigDecimal,
 
+    @JsonProperty("partial_liquidations")
+    val partialLiquidations: String,
+
+    @JsonProperty("partial_liquidations_number")
+    val partialLiquidationsNumber: BigDecimal,
+
+    @JsonProperty("final_liquidations")
+    val finalLiquidations: String,
+
+    @JsonProperty("final_liquidations_number")
+    val finalLiquidationsNumber: BigDecimal,
+
+    @JsonProperty("total_liquidated")
+    val totalLiquidated: String,
+
+    @JsonProperty("total_liquidated_number")
+    val totalLiquidatedNumber: BigDecimal,
+
     @JsonProperty("movements")
     val movements: List<CashMovementDto>? = null
 

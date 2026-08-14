@@ -25,6 +25,10 @@ class CashControlMapper {
         val endsDate = cashControl.endsDate?.toLocalDate()?.format(formatter)
         val period = startsDate + "/" + (endsDate ?: "Actual")
 
+        val partialLiquidations = cashControl.partialLiquidationsTotal ?: BigDecimal.ZERO
+        val finalLiquidations = cashControl.finalLiquidationsTotal ?: BigDecimal.ZERO
+        val totalLiquidated = partialLiquidations.add(finalLiquidations)
+
         return CashControlResponse(
             fullName = if (applicationUser.lastName == null) applicationUser.name else applicationUser.name + " " + applicationUser.lastName,
             cashControlId = cashControl.cashControlId,
@@ -40,7 +44,13 @@ class CashControlMapper {
             commission = utilities.currencyFormat(cashControl.commission.toString()),
             commissionNumber = cashControl.commission,
             downPayments = utilities.currencyFormat(cashControl.downPayments?.toString() ?: "0"),
-            downPaymentsNumber = cashControl.downPayments ?: BigDecimal.ZERO
+            downPaymentsNumber = cashControl.downPayments ?: BigDecimal.ZERO,
+            partialLiquidations = utilities.currencyFormat(partialLiquidations.toString()),
+            partialLiquidationsNumber = partialLiquidations,
+            finalLiquidations = utilities.currencyFormat(finalLiquidations.toString()),
+            finalLiquidationsNumber = finalLiquidations,
+            totalLiquidated = utilities.currencyFormat(totalLiquidated.toString()),
+            totalLiquidatedNumber = totalLiquidated
         )
 
     }

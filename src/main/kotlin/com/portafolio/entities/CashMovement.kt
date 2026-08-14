@@ -78,5 +78,9 @@ data class CashMovement(
     fun isCancelPaymentOrDeleteService() :Boolean {
         return this.cashMovementType == "delete_service" || this.cashMovementType == "cancel_payment"
     }
+
+    fun isLiquidation() : Boolean {
+        return this.cashMovementType == "partial_liquidation" || this.cashMovementType == "final_liquidation"
+    }
 }
 

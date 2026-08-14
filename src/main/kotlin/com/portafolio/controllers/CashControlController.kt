@@ -95,6 +95,26 @@ class CashControlController {
         return ResponseEntity.ok().body(hashMapOf("ok" to "true"))
     }
 
+    @PostMapping("/cash_control/partial-liquidation")
+    fun registerPartialLiquidation(
+        @RequestHeader("Authorization") authorization: String,
+        @Valid @RequestBody request: CashControlClosureRequest
+    )  : ResponseEntity<HashMap<String, String>> {
+        val username: String
+        try {
+            val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+            username = applicationUserService.verifyToken(token)
+        } catch (e: Exception) {
+            return ResponseEntity.status(401).body(hashMapOf("ok" to "false", "error" to "Error al autenticar al usuario, e: ${e.message}"))
+        }
+
+        val cashControl = service.registerPartialLiquidation(request, username)
+
+        cashControl ?: return ResponseEntity.badRequest().body(hashMapOf("ok" to "false"))
+
+        return ResponseEntity.ok().body(hashMapOf("ok" to "true"))
+    }
+
     @GetMapping("/cash_control/movements/{id_cash_control}")
     fun getCashMovements(@PathVariable("id_cash_control") idCashControl: Long)
         = service.getCashControlMovements(idCashControl)

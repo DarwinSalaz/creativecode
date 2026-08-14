@@ -5,6 +5,7 @@ import com.portafolio.dtos.CashControlResponse
 import com.portafolio.dtos.CashMovementDto
 import com.portafolio.entities.ApplicationUser
 import com.portafolio.entities.CashControl
+import com.portafolio.entities.CashMovement
 import com.portafolio.mappers.CashControlMapper
 import com.portafolio.repositories.CashControlRepository
 import com.portafolio.repositories.CashMovementRepository
@@ -144,6 +145,8 @@ class CashControlService(
                 revenues = BigDecimal.ZERO,
                 commission = BigDecimal.ZERO,
                 downPayments = BigDecimal.ZERO,
+                partialLiquidationsTotal = BigDecimal.ZERO,
+                finalLiquidationsTotal = BigDecimal.ZERO,
                 startsDate = LocalDateTime.now(),
                 servicesCount = 0
             )
@@ -153,19 +156,83 @@ class CashControlService(
         return cashControl
     }
 
+    @Transactional
+    fun registerPartialLiquidation(request: CashControlClosureRequest, userClosure: String) : CashControl? {
+        val cashControl = repository.findById(request.cashControlId).orElse(null)
+
+        if (cashControl == null || !cashControl.active) return null
+        if (request.closureValueReceived <= BigDecimal.ZERO) return null
+        if (request.closureValueReceived >= cashControl.cash) return null
+
+        cashMovementRepository.save(buildLiquidationMovement(
+            cashControl = cashControl,
+            value = request.closureValueReceived,
+            description = "Liquidación parcial de cartera",
+            justification = request.closureNotes ?: "Liquidación parcial realizada por el usuario: $userClosure",
+            movementType = "partial_liquidation"
+        ))
+
+        val updatedCashControl = cashControl.copy(
+            cash = cashControl.cash.subtract(request.closureValueReceived),
+            partialLiquidationsTotal = (cashControl.partialLiquidationsTotal ?: BigDecimal.ZERO).add(request.closureValueReceived)
+        )
+
+        return repository.save(updatedCashControl)
+    }
+
+    @Transactional
     fun closureAccount(request: CashControlClosureRequest, userClosure: String) : CashControl? {
         val cashControl = repository.findById(request.cashControlId).orElse(null)
 
         if (cashControl == null || !cashControl.active) return null
+        if (request.closureValueReceived <= BigDecimal.ZERO) return null
+        if (request.closureValueReceived.compareTo(cashControl.cash) != 0) return null
 
-        cashControl.active = false
-        cashControl.endsDate = LocalDateTime.now()
-        cashControl.closureDate = LocalDateTime.now()
-        cashControl.closureUser = userClosure
-        cashControl.closureValueReceived = request.closureValueReceived
-        cashControl.closureNotes = request.closureNotes
+        cashMovementRepository.save(buildLiquidationMovement(
+            cashControl = cashControl,
+            value = request.closureValueReceived,
+            description = "Liquidación final de cartera",
+            justification = request.closureNotes ?: "Liquidación final realizada por el usuario: $userClosure",
+            movementType = "final_liquidation"
+        ))
 
-        return repository.save(cashControl)
+        val closedCashControl = cashControl.copy(
+            cash = BigDecimal.ZERO,
+            active = false,
+            endsDate = LocalDateTime.now(),
+            closureDate = LocalDateTime.now(),
+            closureUser = userClosure,
+            closureValueReceived = request.closureValueReceived,
+            closureNotes = request.closureNotes,
+            finalLiquidationsTotal = (cashControl.finalLiquidationsTotal ?: BigDecimal.ZERO).add(request.closureValueReceived)
+        )
+
+        return repository.save(closedCashControl)
+    }
+
+    private fun buildLiquidationMovement(
+        cashControl: CashControl,
+        value: BigDecimal,
+        description: String,
+        justification: String,
+        movementType: String
+    ): CashMovement {
+        return CashMovement(
+            cashMovementType = movementType,
+            movementType = "OUT",
+            applicationUserId = cashControl.applicationUserId,
+            paymentId = null,
+            serviceId = null,
+            value = value,
+            description = description,
+            cashControlId = cashControl.cashControlId,
+            commission = BigDecimal.ZERO,
+            downPayments = BigDecimal.ZERO,
+            justification = justification,
+            walletId = null,
+            expenseId = null,
+            revenueId = null
+        )
     }
 
     fun getCashControlMovements(cashControlId: Long) : List<CashMovementDto> {
@@ -193,9 +260,10 @@ class CashControlService(
         val period = startsDate.toLocalDate().format(formatter) + "/" + endsDate.toLocalDate().format(formatter)
         var inputs = movements.filter { it.movementType == "IN" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         val cancelPayments = movements.filter { it.movementType == "OUT" && it.isCancelPaymentOrDeleteService() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val liquidations = movements.filter { it.movementType == "OUT" && it.isLiquidation() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         inputs = inputs.subtract(cancelPayments)
 
-        val expenses = movements.filter { it.movementType == "OUT" && !it.isCancelPaymentOrDeleteService() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val expenses = movements.filter { it.movementType == "OUT" && !it.isCancelPaymentOrDeleteService() && !it.isLiquidation() }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
 
 
         var commissions = movements.filter { it.movementType == "IN" }.mapNotNull { it.commission }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
@@ -206,8 +274,11 @@ class CashControlService(
         val downPaymentsCanceled = movements.filter { it.movementType == "OUT" && it.isCancelPaymentOrDeleteService() }.map { it.downPayments }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         downPayments = downPayments.subtract(downPaymentsCanceled)
 
-        val cash = inputs.subtract(expenses)
+        val cash = inputs.subtract(expenses).subtract(liquidations)
         val revenues = inputs.add(commissions).add(downPayments)
+        val partialLiquidations = movements.filter { it.cashMovementType == "partial_liquidation" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val finalLiquidations = movements.filter { it.cashMovementType == "final_liquidation" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
+        val totalLiquidated = partialLiquidations.add(finalLiquidations)
 
         return CashControlResponse (
             fullName = if (applicationUser.lastName == null) applicationUser.name else applicationUser.name + " " + applicationUser.lastName,
@@ -226,6 +297,12 @@ class CashControlService(
             commissionNumber = commissions ?: BigDecimal.ZERO,
             downPayments = utilities.currencyFormat(downPayments.toString()),
             downPaymentsNumber = downPayments ?: BigDecimal.ZERO,
+            partialLiquidations = utilities.currencyFormat(partialLiquidations.toString()),
+            partialLiquidationsNumber = partialLiquidations,
+            finalLiquidations = utilities.currencyFormat(finalLiquidations.toString()),
+            finalLiquidationsNumber = finalLiquidations,
+            totalLiquidated = utilities.currencyFormat(totalLiquidated.toString()),
+            totalLiquidatedNumber = totalLiquidated,
             movements = movementsDto
         )
     }

@@ -145,6 +145,8 @@ class CashMovementService {
             "expense" -> "Gasto"
             "cancel_payment" -> "Cancelación de Pago"
             "delete_service" -> "Eliminación de Servicio"
+            "partial_liquidation" -> "Liquidación Parcial"
+            "final_liquidation" -> "Liquidación Final"
             else -> type
         }
     }
