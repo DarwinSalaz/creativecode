@@ -14,8 +14,8 @@ set -a
 source "${ENV_FILE}"
 set +a
 
-if [[ -z "${DB_PW:-}" ]]; then
-  echo "DB_PW is required in ${ENV_FILE}." >&2
+if [[ -z "${DB_NF_PW:-}" ]]; then
+  echo "DB_NF_PW is required in ${ENV_FILE}." >&2
   exit 1
 fi
 
