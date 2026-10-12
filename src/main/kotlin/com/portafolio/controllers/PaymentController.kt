@@ -8,6 +8,8 @@ import com.portafolio.services.PaymentService
 import com.portafolio.services.ServicesService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.validation.annotation.Validated
+import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import javax.validation.Valid
 
@@ -55,13 +57,18 @@ class PaymentController {
 
     @PutMapping("/payment/cancel")
     fun cancelPayment(@RequestParam("payment_id") paymentId: Long,
-                        @RequestHeader("Authorization") authorization: String) : Map<String, String>? {
+                        @RequestHeader("Authorization") authorization: String) : ResponseEntity<Map<String, String>> {
 
         val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
         val applicationUsername : String = applicationUserService.verifyToken(token)
         val user = applicationUserRepository.findByUsername(applicationUsername)
 
-        user ?: return null
+        user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(mapOf("ok" to "false", "message" to "UNAUTHORIZED"))
+        if (user.userProfileId != 1) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(mapOf("ok" to "false", "message" to "Solo un administrador puede cancelar abonos."))
+        }
 
         try {
             service.cancelPayment(paymentId, user)
@@ -69,7 +76,7 @@ class PaymentController {
             println("exception: ${e.message}")
         }
 
-        return mapOf("ok" to "true")
+        return ResponseEntity.ok(mapOf("ok" to "true"))
     }
 
 }

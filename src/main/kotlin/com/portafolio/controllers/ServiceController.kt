@@ -153,6 +153,9 @@ class ServiceController {
         val user = applicationUserRepository.findByUsername(applicationUsername)
 
         user ?: return ResponseEntity(mapOf("code" to "error", "message" to "fail"), HttpStatus.BAD_REQUEST)
+        if (user.userProfileId != 1) {
+            return ResponseEntity(mapOf("code" to "forbidden", "message" to "Solo un administrador puede cancelar ventas."), HttpStatus.FORBIDDEN)
+        }
 
         service.cancelService(cancelServiceRequest, user.applicationUserId)
 
@@ -206,13 +209,29 @@ class ServiceController {
     }
 
     @PostMapping("/mark-for-withdrawal")
-    fun markForWithdrawal(@RequestBody request: markServiceDTO): ResponseEntity<Map<String, String>> {
+    fun markForWithdrawal(
+        @RequestBody request: markServiceDTO,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<Map<String, String>> {
+        val user = getAuthenticatedUser(authorization)
+            ?: return ResponseEntity(mapOf("status" to "unauthorized"), HttpStatus.UNAUTHORIZED)
+        if (user.userProfileId != 1) {
+            return ResponseEntity(mapOf("status" to "forbidden"), HttpStatus.FORBIDDEN)
+        }
         service.markForWithdrawal(request.serviceId, request.customerId)
         return ResponseEntity.ok(mapOf("status" to "ok"))
     }
 
     @PostMapping("/mark-as-lost")
-    fun markAsLost(@RequestBody request: markServiceDTO): ResponseEntity<Map<String, String>> {
+    fun markAsLost(
+        @RequestBody request: markServiceDTO,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<Map<String, String>> {
+        val user = getAuthenticatedUser(authorization)
+            ?: return ResponseEntity(mapOf("status" to "unauthorized"), HttpStatus.UNAUTHORIZED)
+        if (user.userProfileId != 1) {
+            return ResponseEntity(mapOf("status" to "forbidden"), HttpStatus.FORBIDDEN)
+        }
         service.markAsLost(request.serviceId, request.customerId)
         return ResponseEntity.ok(mapOf("status" to "ok"))
     }
@@ -227,6 +246,10 @@ class ServiceController {
         val user = applicationUserRepository.findByUsername(applicationUsername)
 
         user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
+        if (user.userProfileId != 1) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(mapOf("code" to "forbidden", "message" to "Solo un administrador puede eliminar ventas."))
+        }
 
         try {
             service.deleteService(deleteServiceRequest, user)
