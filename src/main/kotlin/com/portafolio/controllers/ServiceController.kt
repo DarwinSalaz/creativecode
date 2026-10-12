@@ -7,6 +7,7 @@ import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.repositories.ServiceRepository
 import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.ServicesService
+import com.portafolio.services.ServiceWalletTransferService
 import com.portafolio.services.Utilities
 import io.jsonwebtoken.JwtException
 import org.slf4j.LoggerFactory
@@ -44,6 +45,9 @@ class ServiceController {
 
     @Autowired
     lateinit var utilities: Utilities
+
+    @Autowired
+    lateinit var serviceWalletTransferService: ServiceWalletTransferService
 
     @PostMapping("/service/create")
     fun createService(@Valid @RequestBody serviceDto: ServiceDto,
@@ -234,6 +238,50 @@ class ServiceController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(mapOf("code" to "error", "message" to (e.message ?: "Error interno del servidor")))
         }
+    }
+
+    @PostMapping("/service/wallet-transfer/preview")
+    fun previewWalletTransfer(
+        @Valid @RequestBody request: ServiceWalletTransferRequest,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<Any> {
+        val user = getAuthenticatedUser(authorization)
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to "UNAUTHORIZED"))
+
+        return try {
+            ResponseEntity.ok(serviceWalletTransferService.preview(request, user))
+        } catch (e: SecurityException) {
+            ResponseEntity.status(HttpStatus.FORBIDDEN).body(mapOf("message" to e.message))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf("message" to e.message))
+        }
+    }
+
+    @PostMapping("/service/wallet-transfer")
+    fun transferWallet(
+        @Valid @RequestBody request: ServiceWalletTransferRequest,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<Any> {
+        val user = getAuthenticatedUser(authorization)
+            ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(mapOf("message" to "UNAUTHORIZED"))
+
+        return try {
+            ResponseEntity.ok(serviceWalletTransferService.transfer(request, user))
+        } catch (e: SecurityException) {
+            ResponseEntity.status(HttpStatus.FORBIDDEN).body(mapOf("message" to e.message))
+        } catch (e: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf("message" to e.message))
+        } catch (e: Exception) {
+            log.error("Error trasladando venta de cartera", e)
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(mapOf("message" to (e.message ?: "Error interno del servidor")))
+        }
+    }
+
+    private fun getAuthenticatedUser(authorization: String): com.portafolio.entities.ApplicationUser? {
+        val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+        val applicationUsername = applicationUserService.verifyToken(token)
+        return applicationUserRepository.findByUsername(applicationUsername)
     }
 
 }

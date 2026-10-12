@@ -15,6 +15,13 @@ interface ServiceRepository: JpaRepository<Service, Long> {
     @Query("SELECT s FROM Service s WHERE s.customerId = ?1 and s.state in ('created', 'paying', 'fully_paid') and s.deletedAt IS NULL")
     fun findAllServicesByUser(customerId : Long) : List<Service>?
 
+    @Query("SELECT COUNT(s) FROM Service s WHERE s.customerId = ?1 AND s.serviceId <> ?2")
+    fun countOtherServicesByCustomer(customerId: Long, serviceId: Long): Long
+
+    @Modifying
+    @Query("UPDATE Service s SET s.walletId = ?2, s.customerId = ?3 WHERE s.serviceId = ?1")
+    fun transferToWallet(serviceId: Long, walletId: Int, customerId: Long): Int
+
     @Modifying
     @Query("UPDATE Service s SET s.debt = s.debt - ?1, s.nextPaymentDate = ?2 where s.serviceId = ?3")
     fun updateDebtService(value : BigDecimal, nextPaymentDate: LocalDateTime?, serviceId: Long)
