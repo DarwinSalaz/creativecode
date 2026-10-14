@@ -241,6 +241,8 @@ class CashControlService(
         return mapper.mapCashMovements(movements)
     }
 
+    // Internal calls bypass Spring's transaction proxy; refresh needs this outer transaction.
+    @Transactional
     fun getDailyCashControl(applicationUser : ApplicationUser) : CashControlResponse {
         val cashControl = findActiveCashControlByUser(applicationUser.applicationUserId)
 
