@@ -14,10 +14,14 @@ set -a
 source "${ENV_FILE}"
 set +a
 
-if [[ -z "${DB_NF_PW:-}" ]]; then
-  echo "DB_NF_PW is required in ${ENV_FILE}." >&2
+if [[ -z "${DB_URL:-}" || -z "${DB_USER:-}" || -z "${DB_PASSWORD:-}" ]]; then
+  echo "DB_URL, DB_USER and DB_PASSWORD are required in ${ENV_FILE}." >&2
   exit 1
 fi
 
 cd "${PROJECT_DIR}"
+LOCAL_JAVA="${PROJECT_DIR}/.local/jdks/temurin8-x64/Contents/Home"
+if [[ -d "${LOCAL_JAVA}" ]]; then
+  export JAVA_HOME="${LOCAL_JAVA}"
+fi
 exec ./gradlew bootRun
