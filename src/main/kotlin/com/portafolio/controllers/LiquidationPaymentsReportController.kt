@@ -6,6 +6,8 @@ import com.portafolio.services.ApplicationUserService
 import com.portafolio.services.LiquidationPaymentsReportService
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.dao.DataAccessException
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestParam
@@ -17,6 +19,8 @@ class LiquidationPaymentsReportController(
     private val applicationUserService: ApplicationUserService,
     private val applicationUserRepository: ApplicationUserRepository
 ) {
+    private val log = LoggerFactory.getLogger(this::class.java)
+
     @GetMapping("/reports/liquidation-payments")
     fun report(
         @RequestParam("wallet_id", required = false) walletId: Int?,
@@ -35,6 +39,14 @@ class LiquidationPaymentsReportController(
             ResponseEntity.ok(reportService.generate(walletId, cashControlId))
         } catch (error: IllegalArgumentException) {
             ResponseEntity.badRequest().body(mapOf("message" to (error.message ?: "Solicitud inválida")))
+        } catch (error: DataAccessException) {
+            log.error("[liquidation-payments-report] Database error for walletId=$walletId, cashControlId=$cashControlId", error)
+            ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(mapOf("message" to "No fue posible consultar los datos del informe en este momento."))
+        } catch (error: Exception) {
+            log.error("[liquidation-payments-report] Unexpected error for walletId=$walletId, cashControlId=$cashControlId", error)
+            ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(mapOf("message" to "Ocurrió un error procesando el informe."))
         }
     }
 }

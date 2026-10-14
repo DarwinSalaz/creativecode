@@ -4,12 +4,14 @@ import com.portafolio.dtos.LiquidationPaymentsReportDto
 import com.portafolio.dtos.LiquidationReportColumnDto
 import com.portafolio.dtos.LiquidationReportRowDto
 import org.springframework.jdbc.core.JdbcTemplate
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
-import java.sql.Timestamp
+import java.sql.ResultSet
 
 @Service
 class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
+    private val log = LoggerFactory.getLogger(this::class.java)
 
     fun generate(walletId: Int?, cashControlId: Long?): LiquidationPaymentsReportDto {
         require((walletId == null) != (cashControlId == null)) {
@@ -17,9 +19,15 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
         }
 
         val liquidations = findLiquidations(walletId, cashControlId)
-        val liquidationIds = liquidations.map { it.liquidationId }
+        log.info("[liquidation-payments-report] scope walletId={}, cashControlId={}, liquidations={}",
+            walletId, cashControlId, liquidations.size)
+        val cashControlIds = liquidations.map { it.cashControlId }
         val rows = findRows(walletId, cashControlId)
-        val values = findLiquidationValues(walletId, cashControlId, liquidationIds)
+        log.info("[liquidation-payments-report] scope walletId={}, cashControlId={}, rows={}",
+            walletId, cashControlId, rows.size)
+        val values = findLiquidationValues(walletId, cashControlId, cashControlIds)
+        log.info("[liquidation-payments-report] scope walletId={}, cashControlId={}, servicesWithValues={}",
+            walletId, cashControlId, values.size)
 
         return LiquidationPaymentsReportDto(
             scopeLabel = if (walletId != null) findWalletName(walletId) else "Liquidación #$cashControlId",
@@ -34,29 +42,34 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
 
     private fun findLiquidations(walletId: Int?, cashControlId: Long?): List<LiquidationReportColumnDto> {
         val scopeSql = if (walletId != null) {
-            "AND EXISTS (SELECT 1 FROM cash_movements m WHERE m.cash_control_id = l.cash_control_id AND m.wallet_id = ? AND m.cash_movement_type IN ('fee_payment', 'cancel_payment'))"
+            "AND EXISTS (SELECT 1 FROM cash_movements m WHERE m.cash_control_id = cc.cash_control_id AND m.wallet_id = ? AND m.cash_movement_type IN ('fee_payment', 'cancel_payment'))"
         } else {
-            "AND l.cash_control_id = ?"
+            "AND cc.cash_control_id = ?"
         }
         val parameter: Any = walletId ?: cashControlId!!
 
         return jdbcTemplate.query(
             """
-            SELECT l.cash_movement_id, l.cash_control_id, l.created_at, l.value
-            FROM cash_movements l
-            WHERE l.cash_movement_type = 'final_liquidation' $scopeSql
-            ORDER BY l.created_at ASC, l.cash_movement_id ASC
+            SELECT cc.cash_control_id,
+                   COALESCE(cc.closure_date, cc.ends_date) AS liquidated_at,
+                   COALESCE(cc.closure_value_received, cc.final_liquidations_total, 0) AS value
+            FROM cash_control cc
+            WHERE cc.active = FALSE
+              AND COALESCE(cc.closure_date, cc.ends_date) IS NOT NULL
+              $scopeSql
+            ORDER BY COALESCE(cc.closure_date, cc.ends_date) ASC, cc.cash_control_id ASC
             """.trimIndent(),
             arrayOf(parameter)
-        ) { rs, _ ->
-            LiquidationReportColumnDto(
-                liquidationId = rs.getLong("cash_movement_id"),
-                cashControlId = rs.getLong("cash_control_id"),
-                liquidatedAt = rs.getTimestamp("created_at").toLocalDateTime(),
-                value = rs.getBigDecimal("value") ?: BigDecimal.ZERO
-            )
-        }
+        ) { rs, _ -> mapLiquidationRow(rs) }
     }
+
+    internal fun mapLiquidationRow(rs: ResultSet): LiquidationReportColumnDto = LiquidationReportColumnDto(
+        // The cash control is the stable identifier for both historical and new closures.
+        liquidationId = rs.getLong("cash_control_id"),
+        cashControlId = rs.getLong("cash_control_id"),
+        liquidatedAt = rs.getTimestamp("liquidated_at").toLocalDateTime(),
+        value = rs.getBigDecimal("value") ?: BigDecimal.ZERO
+    )
 
     private fun findRows(walletId: Int?, cashControlId: Long?): List<LiquidationReportRowDto> {
         val scopeSql = if (walletId != null) {
@@ -83,7 +96,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
             FROM services s
             JOIN customers c ON c.customer_id = s.customer_id
             WHERE $scopeSql
-              AND s.state NOT IN ('canceled', 'deleted')
+              AND COALESCE(s.state, '') NOT IN ('canceled', 'deleted')
               AND s.deleted_at IS NULL
             ORDER BY s.created_at ASC, s.service_id ASC
             """.trimIndent(),
@@ -113,30 +126,33 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
     private fun findLiquidationValues(
         walletId: Int?,
         cashControlId: Long?,
-        liquidationIds: List<Long>
+        cashControlIds: List<Long>
     ): Map<Long, Map<Long, BigDecimal>> {
-        if (liquidationIds.isEmpty()) return emptyMap()
+        if (cashControlIds.isEmpty()) return emptyMap()
 
-        val scopeSql = if (walletId != null) "AND m.wallet_id = ?" else "AND m.cash_control_id = ?"
+        val scopeSql = if (walletId != null) "AND m.wallet_id = ?" else "AND cc.cash_control_id = ?"
         val parameter: Any = walletId ?: cashControlId!!
-        val placeholders = liquidationIds.joinToString(",") { "?" }
+        val placeholders = cashControlIds.joinToString(",") { "?" }
         val parameters = arrayListOf<Any>().apply {
-            addAll(liquidationIds)
+            addAll(cashControlIds)
             add(parameter)
         }.toTypedArray()
         val values = mutableMapOf<Long, MutableMap<Long, BigDecimal>>()
 
         jdbcTemplate.query(
             """
-            SELECT m.service_id, l.cash_movement_id AS liquidation_id,
+            SELECT m.service_id, cc.cash_control_id AS liquidation_id,
                    SUM(CASE WHEN m.cash_movement_type = 'fee_payment' THEN p.value ELSE -p.value END) AS value
-            FROM cash_movements l
-            JOIN cash_movements m ON m.cash_control_id = l.cash_control_id AND m.created_at <= l.created_at
+            FROM cash_control cc
+            JOIN cash_movements m ON m.cash_control_id = cc.cash_control_id
+                                 AND m.created_at >= cc.starts_date
+                                 AND m.created_at <= COALESCE(cc.closure_date, cc.ends_date)
             JOIN payments p ON p.payment_id = m.payment_id
-            WHERE l.cash_movement_id IN ($placeholders)
+            WHERE cc.cash_control_id IN ($placeholders)
+              AND cc.active = FALSE
               AND m.cash_movement_type IN ('fee_payment', 'cancel_payment')
               $scopeSql
-            GROUP BY m.service_id, l.cash_movement_id
+            GROUP BY m.service_id, cc.cash_control_id
             """.trimIndent(),
             parameters
         ) { rs ->
