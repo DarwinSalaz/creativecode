@@ -1,28 +1,23 @@
 package com.portafolio.services
 
 import com.portafolio.dtos.InventoryMovementRequest
+import com.portafolio.dtos.InventoryMovementBatchRequest
 import com.portafolio.dtos.InventoryMovementResponse
 import com.portafolio.entities.InventoryMovement
 import com.portafolio.entities.MovementType
 import com.portafolio.repositories.InventoryMovementRepository
 import com.portafolio.repositories.ProductRepository
 import com.portafolio.repositories.WalletRepository
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
 
 @Service
-class InventoryMovementService {
-    
-    @Autowired
-    lateinit var inventoryMovementRepository: InventoryMovementRepository
-    
-    @Autowired
-    lateinit var productRepository: ProductRepository
-    
-    @Autowired
-    lateinit var walletRepository: WalletRepository
+class InventoryMovementService(
+    private val inventoryMovementRepository: InventoryMovementRepository,
+    private val productRepository: ProductRepository,
+    private val walletRepository: WalletRepository
+) {
     
     @Transactional
     fun registerMovement(request: InventoryMovementRequest, userId: Long, username: String): InventoryMovementResponse {
@@ -82,6 +77,42 @@ class InventoryMovementService {
             walletId = savedMovement.walletId,
             walletName = wallet.name
         )
+    }
+
+    @Transactional
+    fun registerMovements(request: InventoryMovementBatchRequest, userId: Long, username: String): List<InventoryMovementResponse> {
+        val wallet = walletRepository.findById(request.walletId)
+            .orElseThrow { IllegalArgumentException("Cartera no encontrada") }
+
+        val duplicatedProduct = request.items.groupBy { it.productId }.entries.firstOrNull { it.value.size > 1 }
+        if (duplicatedProduct != null) {
+            throw IllegalArgumentException("No se puede cargar el mismo producto más de una vez")
+        }
+
+        request.items.forEach { item ->
+            val product = productRepository.findById(item.productId)
+                .orElseThrow { IllegalArgumentException("Producto no encontrado: ${item.productId}") }
+            if (product.wallet.walletId != wallet.walletId) {
+                throw IllegalArgumentException("El producto ${product.name} no pertenece a la cartera seleccionada")
+            }
+            if (request.movementType == MovementType.SALIDA && product.leftQuantity < item.quantity) {
+                throw IllegalArgumentException("Stock insuficiente para ${product.name}")
+            }
+        }
+
+        return request.items.map { item ->
+            registerMovement(
+                InventoryMovementRequest(
+                    productId = item.productId,
+                    movementType = request.movementType,
+                    quantity = item.quantity,
+                    description = request.description,
+                    walletId = request.walletId
+                ),
+                userId,
+                username
+            )
+        }
     }
     
     fun getMovementsByWalletIds(walletIds: List<Int>): List<InventoryMovementResponse> {
@@ -155,4 +186,4 @@ class InventoryMovementService {
             )
         }
     }
-} 
+}

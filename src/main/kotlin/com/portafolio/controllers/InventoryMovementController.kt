@@ -1,6 +1,7 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.InventoryMovementRequest
+import com.portafolio.dtos.InventoryMovementBatchRequest
 import com.portafolio.dtos.InventoryMovementResponse
 import com.portafolio.dtos.WalletRequest
 import com.portafolio.repositories.ApplicationUserRepository
@@ -51,6 +52,26 @@ class InventoryMovementController {
             return ResponseEntity.status(401).build() // Unauthorized
         }
     }
+
+    @PostMapping("/inventory/movements/batch")
+    fun registerMovements(
+        @Valid @RequestBody request: InventoryMovementBatchRequest,
+        @RequestHeader("username") username: String,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<Any> {
+        return try {
+            val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+            val applicationUsername = applicationUserService.verifyToken(token)
+            val user = applicationUserRepository.findByUsername(applicationUsername)
+                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+
+            ResponseEntity.ok(inventoryMovementService.registerMovements(request, user.applicationUserId, username))
+        } catch (error: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf("message" to (error.message ?: "Carga de inventario inválida")))
+        } catch (error: Exception) {
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        }
+    }
     
     @PostMapping("/inventory/movements")
     fun getMovements(@Valid @RequestBody walletRequest: WalletRequest): ResponseEntity<List<InventoryMovementResponse>> {
@@ -77,4 +98,4 @@ class InventoryMovementController {
         val movements = inventoryMovementService.getMovementsByDateRange(walletRequest.walletIds!!, start, end)
         return ResponseEntity.ok(movements)
     }
-} 
+}
