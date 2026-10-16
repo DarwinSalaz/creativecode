@@ -41,8 +41,9 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
     }
 
     private fun findLiquidations(walletId: Int?, cashControlId: Long?): List<LiquidationReportColumnDto> {
+        val movementFilter = paymentMovementFilter("m")
         val scopeSql = if (walletId != null) {
-            "AND EXISTS (SELECT 1 FROM cash_movements m WHERE m.cash_control_id = cc.cash_control_id AND m.wallet_id = ? AND m.cash_movement_type IN ('fee_payment', 'cancel_payment'))"
+            "AND EXISTS (SELECT 1 FROM cash_movements m WHERE m.cash_control_id = cc.cash_control_id AND m.wallet_id = ? AND $movementFilter)"
         } else {
             "AND cc.cash_control_id = ?"
         }
@@ -72,10 +73,12 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
     )
 
     private fun findRows(walletId: Int?, cashControlId: Long?): List<LiquidationReportRowDto> {
+        val movementFilter = paymentMovementFilter("cm")
+        val scopeMovementFilter = paymentMovementFilter("scope_m")
         val scopeSql = if (walletId != null) {
             "s.wallet_id = ?"
         } else {
-            "EXISTS (SELECT 1 FROM cash_movements scope_m WHERE scope_m.cash_control_id = ? AND scope_m.service_id = s.service_id AND scope_m.cash_movement_type IN ('fee_payment', 'cancel_payment'))"
+            "EXISTS (SELECT 1 FROM cash_movements scope_m WHERE scope_m.cash_control_id = ? AND scope_m.service_id = s.service_id AND $scopeMovementFilter)"
         }
         val parameter: Any = walletId ?: cashControlId!!
 
@@ -92,7 +95,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
                              FROM cash_movements cm
                              JOIN payments pmt ON pmt.payment_id = cm.payment_id
                              WHERE cm.service_id = s.service_id
-                               AND cm.cash_movement_type IN ('fee_payment', 'cancel_payment')), 0) AS total_payments
+                               AND $movementFilter), 0) AS total_payments
             FROM services s
             JOIN customers c ON c.customer_id = s.customer_id
             WHERE $scopeSql
@@ -131,6 +134,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
         if (cashControlIds.isEmpty()) return emptyMap()
 
         val scopeSql = if (walletId != null) "AND m.wallet_id = ?" else "AND cc.cash_control_id = ?"
+        val movementFilter = paymentMovementFilter("m")
         val parameter: Any = walletId ?: cashControlId!!
         val placeholders = cashControlIds.joinToString(",") { "?" }
         val parameters = arrayListOf<Any>().apply {
@@ -150,7 +154,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
             JOIN payments p ON p.payment_id = m.payment_id
             WHERE cc.cash_control_id IN ($placeholders)
               AND cc.active = FALSE
-              AND m.cash_movement_type IN ('fee_payment', 'cancel_payment')
+              AND $movementFilter
               $scopeSql
             GROUP BY m.service_id, cc.cash_control_id
             """.trimIndent(),
@@ -168,4 +172,12 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
         arrayOf(walletId),
         String::class.java
     ) ?: "Cartera #$walletId"
+
+    internal fun paymentMovementFilter(alias: String): String =
+        """($alias.cash_movement_type = 'fee_payment'
+           OR ($alias.cash_movement_type = 'cancel_payment'
+               AND EXISTS (SELECT 1
+                           FROM cash_movements original_payment_movement
+                           WHERE original_payment_movement.payment_id = $alias.payment_id
+                             AND original_payment_movement.cash_movement_type = 'fee_payment')))""".trimIndent()
 }

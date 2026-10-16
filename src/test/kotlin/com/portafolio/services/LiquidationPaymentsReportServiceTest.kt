@@ -3,6 +3,7 @@ package com.portafolio.services
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.springframework.jdbc.core.JdbcTemplate
 import java.math.BigDecimal
@@ -37,5 +38,15 @@ class LiquidationPaymentsReportServiceTest {
         assertEquals(41L, result.cashControlId)
         assertEquals(closedAt, result.liquidatedAt)
         assertEquals(BigDecimal("30000"), result.value)
+    }
+
+    @Test
+    fun `only subtracts cancellations that belong to fee payments`() {
+        val filter = service.paymentMovementFilter("movement")
+
+        assertTrue(filter.contains("movement.cash_movement_type = 'fee_payment'"))
+        assertTrue(filter.contains("movement.cash_movement_type = 'cancel_payment'"))
+        assertTrue(filter.contains("original_payment_movement.payment_id = movement.payment_id"))
+        assertTrue(filter.contains("original_payment_movement.cash_movement_type = 'fee_payment'"))
     }
 }
