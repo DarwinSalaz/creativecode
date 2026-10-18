@@ -76,17 +76,37 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
         val movementFilter = paymentMovementFilter("cm")
         val paymentValue = paymentValueExpression("cm", "pmt")
         val scopeMovementFilter = paymentMovementFilter("scope_m")
+        val historicalMovementFilter = paymentMovementFilter("historical_m")
+        val historicalPaymentValue = paymentValueExpression("historical_m", "historical_p")
         val scopeSql = if (walletId != null) {
             "s.wallet_id = ?"
         } else {
             "EXISTS (SELECT 1 FROM cash_movements scope_m WHERE scope_m.cash_control_id = ? AND scope_m.service_id = s.service_id AND $scopeMovementFilter)"
+        }
+        val visibilitySql = if (walletId != null) {
+            """AND (COALESCE(s.state, '') NOT IN ('canceled', 'deleted') AND s.deleted_at IS NULL
+                 OR EXISTS (SELECT 1
+                            FROM cash_movements historical_m
+                            JOIN payments historical_p ON historical_p.payment_id = historical_m.payment_id
+                            JOIN cash_control historical_cc ON historical_cc.cash_control_id = historical_m.cash_control_id
+                            WHERE historical_m.service_id = s.service_id
+                              AND historical_m.wallet_id = s.wallet_id
+                              AND historical_cc.active = FALSE
+                              AND COALESCE(historical_cc.closure_date, historical_cc.ends_date) IS NOT NULL
+                              AND historical_m.created_at >= historical_cc.starts_date
+                              AND historical_m.created_at <= COALESCE(historical_cc.closure_date, historical_cc.ends_date)
+                              AND $historicalMovementFilter
+                            GROUP BY historical_m.service_id
+                            HAVING SUM($historicalPaymentValue) <> 0))""".trimIndent()
+        } else {
+            ""
         }
         val parameter: Any = walletId ?: cashControlId!!
 
         return jdbcTemplate.query(
             """
             SELECT s.service_id, s.wallet_id, s.created_at, s.fee_value, s.quantity_of_fees,
-                   s.down_payment, s.debt, c.name, c.last_name, c.cellphone, c.address,
+                   s.total_value, s.down_payment, s.debt, s.state, c.name, c.last_name, c.cellphone, c.address,
                    c.identification_number, COALESCE(s.observations, c.observation) AS observation,
                    COALESCE((SELECT STRING_AGG(p.name, '||| ' ORDER BY p.name)
                              FROM service_products sp
@@ -100,8 +120,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
             FROM services s
             JOIN customers c ON c.customer_id = s.customer_id
             WHERE $scopeSql
-              AND COALESCE(s.state, '') NOT IN ('canceled', 'deleted')
-              AND s.deleted_at IS NULL
+              $visibilitySql
             ORDER BY s.created_at ASC, s.service_id ASC
             """.trimIndent(),
             arrayOf(parameter)
@@ -119,9 +138,11 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
                 articles = (rs.getString("articles") ?: "").split("||| ").filter { it.isNotBlank() },
                 feeValue = rs.getBigDecimal("fee_value") ?: BigDecimal.ZERO,
                 quantityOfFees = rs.getInt("quantity_of_fees"),
+                totalValue = rs.getBigDecimal("total_value") ?: BigDecimal.ZERO,
                 totalPayments = rs.getBigDecimal("total_payments") ?: BigDecimal.ZERO,
                 downPayment = rs.getBigDecimal("down_payment") ?: BigDecimal.ZERO,
                 debt = rs.getBigDecimal("debt") ?: BigDecimal.ZERO,
+                state = rs.getString("state") ?: "",
                 liquidationValues = emptyMap()
             )
         }

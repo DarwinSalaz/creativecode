@@ -24,9 +24,11 @@ data class LiquidationReportRowDto(
     val articles: List<String>,
     @JsonProperty("fee_value") val feeValue: BigDecimal,
     @JsonProperty("quantity_of_fees") val quantityOfFees: Int,
+    @JsonProperty("total_value") val totalValue: BigDecimal,
     @JsonProperty("total_payments") val totalPayments: BigDecimal,
     @JsonProperty("down_payment") val downPayment: BigDecimal,
     val debt: BigDecimal,
+    val state: String,
     @JsonProperty("liquidation_values") val liquidationValues: Map<Long, BigDecimal>
 )
 
