@@ -7,6 +7,7 @@ import com.nhaarman.mockitokotlin2.verify
 import com.nhaarman.mockitokotlin2.whenever
 import com.portafolio.dtos.InventoryMovementBatchItem
 import com.portafolio.dtos.InventoryMovementBatchRequest
+import com.portafolio.dtos.InventoryTransferRequest
 import com.portafolio.entities.Company
 import com.portafolio.entities.InventoryMovement
 import com.portafolio.entities.MovementType
@@ -36,6 +37,8 @@ class InventoryMovementServiceTest {
 
     @Before
     fun setUp() {
+        firstProduct.leftQuantity = 3
+        secondProduct.leftQuantity = 8
         service = InventoryMovementService(movementRepository, productRepository, walletRepository)
         whenever(walletRepository.findById(wallet.walletId)).thenReturn(Optional.of(wallet))
         whenever(productRepository.findById(firstProduct.productId)).thenReturn(Optional.of(firstProduct))
@@ -71,6 +74,53 @@ class InventoryMovementServiceTest {
             fail("Expected IllegalArgumentException")
         } catch (error: IllegalArgumentException) {
             assertEquals("El producto Externo no pertenece a la cartera seleccionada", error.message)
+        }
+
+        verify(movementRepository, never()).save(any<InventoryMovement>())
+    }
+
+    @Test
+    fun `transfers stock between wallets using equivalent target product`() {
+        val targetWallet = Wallet(9, company, "Destino", true)
+        val targetProduct = Product(21, company, "Mesa", null, BigDecimal("100"),
+            wallet = targetWallet, leftQuantity = 2)
+        firstProduct.leftQuantity = 10
+        whenever(walletRepository.findById(targetWallet.walletId)).thenReturn(Optional.of(targetWallet))
+        whenever(productRepository.findEquivalentProducts(targetWallet.walletId, company.companyId, firstProduct.name))
+            .thenReturn(listOf(targetProduct))
+        whenever(productRepository.findById(targetProduct.productId)).thenReturn(Optional.of(targetProduct))
+
+        val result = service.transferInventory(
+            InventoryTransferRequest(wallet.walletId, targetWallet.walletId, "Reposición", listOf(
+                InventoryMovementBatchItem(firstProduct.productId, 4)
+            )),
+            5,
+            "admin"
+        )
+
+        assertEquals(6, firstProduct.leftQuantity)
+        assertEquals(6, targetProduct.leftQuantity)
+        assertEquals(2, result.movements.size)
+        assertEquals(MovementType.SALIDA, result.movements[0].movementType)
+        assertEquals(MovementType.ENTRADA, result.movements[1].movementType)
+    }
+
+    @Test
+    fun `rejects transfer when source stock is insufficient`() {
+        val targetWallet = Wallet(9, company, "Destino", true)
+        whenever(walletRepository.findById(targetWallet.walletId)).thenReturn(Optional.of(targetWallet))
+
+        try {
+            service.transferInventory(
+                InventoryTransferRequest(wallet.walletId, targetWallet.walletId, null, listOf(
+                    InventoryMovementBatchItem(firstProduct.productId, 4)
+                )),
+                5,
+                "admin"
+            )
+            fail("Expected IllegalArgumentException")
+        } catch (error: IllegalArgumentException) {
+            assertEquals("Stock insuficiente para Mesa. Disponible: 3", error.message)
         }
 
         verify(movementRepository, never()).save(any<InventoryMovement>())

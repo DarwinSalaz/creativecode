@@ -3,14 +3,18 @@ package com.portafolio.services
 import com.portafolio.dtos.InventoryMovementRequest
 import com.portafolio.dtos.InventoryMovementBatchRequest
 import com.portafolio.dtos.InventoryMovementResponse
+import com.portafolio.dtos.InventoryTransferRequest
+import com.portafolio.dtos.InventoryTransferResponse
 import com.portafolio.entities.InventoryMovement
 import com.portafolio.entities.MovementType
+import com.portafolio.entities.Product
 import com.portafolio.repositories.InventoryMovementRepository
 import com.portafolio.repositories.ProductRepository
 import com.portafolio.repositories.WalletRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.util.UUID
 
 @Service
 class InventoryMovementService(
@@ -113,6 +117,79 @@ class InventoryMovementService(
                 username
             )
         }
+    }
+
+    @Transactional
+    fun transferInventory(request: InventoryTransferRequest, userId: Long, username: String): InventoryTransferResponse {
+        if (request.sourceWalletId == request.targetWalletId) {
+            throw IllegalArgumentException("La cartera de destino debe ser diferente a la de origen")
+        }
+
+        val sourceWallet = walletRepository.findById(request.sourceWalletId)
+            .orElseThrow { IllegalArgumentException("Cartera de origen no encontrada") }
+        val targetWallet = walletRepository.findById(request.targetWalletId)
+            .orElseThrow { IllegalArgumentException("Cartera de destino no encontrada") }
+        if (sourceWallet.company.companyId != targetWallet.company.companyId) {
+            throw IllegalArgumentException("Las carteras deben pertenecer a la misma empresa")
+        }
+
+        val duplicatedProduct = request.items.groupBy { it.productId }.entries.firstOrNull { it.value.size > 1 }
+        if (duplicatedProduct != null) {
+            throw IllegalArgumentException("No se puede trasladar el mismo producto más de una vez")
+        }
+
+        val sourceProducts = request.items.map { item ->
+            val product = productRepository.findById(item.productId)
+                .orElseThrow { IllegalArgumentException("Producto no encontrado: ${item.productId}") }
+            if (product.wallet.walletId != sourceWallet.walletId) {
+                throw IllegalArgumentException("El producto ${product.name} no pertenece a la cartera de origen")
+            }
+            if (product.leftQuantity < item.quantity) {
+                throw IllegalArgumentException("Stock insuficiente para ${product.name}. Disponible: ${product.leftQuantity}")
+            }
+            item to product
+        }
+
+        val reference = UUID.randomUUID().toString()
+        val detail = request.description?.trim()?.takeIf { it.isNotEmpty() }
+        val description = "Traslado $reference: ${sourceWallet.name} -> ${targetWallet.name}" +
+            if (detail == null) "" else ". $detail"
+        val movements = mutableListOf<InventoryMovementResponse>()
+
+        sourceProducts.forEach { (item, sourceProduct) ->
+            val equivalents = productRepository.findEquivalentProducts(
+                targetWallet.walletId,
+                sourceProduct.company.companyId,
+                sourceProduct.name
+            )
+            if (equivalents.size > 1) {
+                throw IllegalArgumentException("Hay varios productos llamados ${sourceProduct.name} en la cartera de destino")
+            }
+            val targetProduct = equivalents.firstOrNull() ?: productRepository.save(
+                Product(
+                    company = sourceProduct.company,
+                    name = sourceProduct.name,
+                    description = sourceProduct.description,
+                    value = sourceProduct.value,
+                    cost = sourceProduct.cost,
+                    wallet = targetWallet,
+                    leftQuantity = 0
+                )
+            )
+
+            movements.add(registerMovement(
+                InventoryMovementRequest(sourceProduct.productId, MovementType.SALIDA, item.quantity, description, sourceWallet.walletId),
+                userId,
+                username
+            ))
+            movements.add(registerMovement(
+                InventoryMovementRequest(targetProduct.productId, MovementType.ENTRADA, item.quantity, description, targetWallet.walletId),
+                userId,
+                username
+            ))
+        }
+
+        return InventoryTransferResponse(reference, sourceWallet.walletId, targetWallet.walletId, movements)
     }
     
     fun getMovementsByWalletIds(walletIds: List<Int>): List<InventoryMovementResponse> {

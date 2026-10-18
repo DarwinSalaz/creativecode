@@ -48,6 +48,27 @@ data class InventoryMovementBatchRequest(
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
+data class InventoryTransferRequest(
+    @JsonProperty("source_wallet_id")
+    val sourceWalletId: Int,
+    @JsonProperty("target_wallet_id")
+    val targetWalletId: Int,
+    @JsonProperty("description")
+    val description: String? = null,
+    @field:Valid
+    @field:NotEmpty(message = "Debe incluir al menos un producto")
+    @JsonProperty("items")
+    val items: List<InventoryMovementBatchItem>
+)
+
+data class InventoryTransferResponse(
+    @JsonProperty("transfer_reference") val transferReference: String,
+    @JsonProperty("source_wallet_id") val sourceWalletId: Int,
+    @JsonProperty("target_wallet_id") val targetWalletId: Int,
+    val movements: List<InventoryMovementResponse>
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 data class InventoryMovementResponse(
     @JsonProperty("id")
     val id: Long,

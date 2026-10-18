@@ -3,6 +3,7 @@ package com.portafolio.controllers
 import com.portafolio.dtos.InventoryMovementRequest
 import com.portafolio.dtos.InventoryMovementBatchRequest
 import com.portafolio.dtos.InventoryMovementResponse
+import com.portafolio.dtos.InventoryTransferRequest
 import com.portafolio.dtos.WalletRequest
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
@@ -68,6 +69,30 @@ class InventoryMovementController {
             ResponseEntity.ok(inventoryMovementService.registerMovements(request, user.applicationUserId, username))
         } catch (error: IllegalArgumentException) {
             ResponseEntity.badRequest().body(mapOf("message" to (error.message ?: "Carga de inventario inválida")))
+        } catch (error: Exception) {
+            ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+        }
+    }
+
+    @PostMapping("/inventory/transfers")
+    fun transferInventory(
+        @Valid @RequestBody request: InventoryTransferRequest,
+        @RequestHeader("username") username: String,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<Any> {
+        return try {
+            val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+            val applicationUsername = applicationUserService.verifyToken(token)
+            val user = applicationUserRepository.findByUsername(applicationUsername)
+                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
+            if (user.userProfileId != 1) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(mapOf("message" to "Solo un administrador puede trasladar inventario"))
+            }
+
+            ResponseEntity.ok(inventoryMovementService.transferInventory(request, user.applicationUserId, username))
+        } catch (error: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf("message" to (error.message ?: "Traslado de inventario inválido")))
         } catch (error: Exception) {
             ResponseEntity.status(HttpStatus.UNAUTHORIZED).build()
         }
