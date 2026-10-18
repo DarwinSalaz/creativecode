@@ -74,6 +74,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
 
     private fun findRows(walletId: Int?, cashControlId: Long?): List<LiquidationReportRowDto> {
         val movementFilter = paymentMovementFilter("cm")
+        val paymentValue = paymentValueExpression("cm", "pmt")
         val scopeMovementFilter = paymentMovementFilter("scope_m")
         val scopeSql = if (walletId != null) {
             "s.wallet_id = ?"
@@ -91,7 +92,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
                              FROM service_products sp
                              JOIN products p ON p.product_id = sp.product_id
                              WHERE sp.service_id = s.service_id AND (sp.enabled IS NULL OR sp.enabled = TRUE)), '') AS articles,
-                   COALESCE((SELECT SUM(CASE WHEN cm.cash_movement_type = 'fee_payment' THEN pmt.value ELSE -pmt.value END)
+                   COALESCE((SELECT SUM($paymentValue)
                              FROM cash_movements cm
                              JOIN payments pmt ON pmt.payment_id = cm.payment_id
                              WHERE cm.service_id = s.service_id
@@ -135,6 +136,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
 
         val scopeSql = if (walletId != null) "AND m.wallet_id = ?" else "AND cc.cash_control_id = ?"
         val movementFilter = paymentMovementFilter("m")
+        val paymentValue = paymentValueExpression("m", "p")
         val parameter: Any = walletId ?: cashControlId!!
         val placeholders = cashControlIds.joinToString(",") { "?" }
         val parameters = arrayListOf<Any>().apply {
@@ -146,7 +148,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
         jdbcTemplate.query(
             """
             SELECT m.service_id, cc.cash_control_id AS liquidation_id,
-                   SUM(CASE WHEN m.cash_movement_type = 'fee_payment' THEN p.value ELSE -p.value END) AS value
+                   SUM($paymentValue) AS value
             FROM cash_control cc
             JOIN cash_movements m ON m.cash_control_id = cc.cash_control_id
                                  AND m.created_at >= cc.starts_date
@@ -174,10 +176,13 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
     ) ?: "Cartera #$walletId"
 
     internal fun paymentMovementFilter(alias: String): String =
-        """($alias.cash_movement_type = 'fee_payment'
+        """(($alias.cash_movement_type IN ('fee_payment', 'new_service') AND $alias.payment_id IS NOT NULL)
            OR ($alias.cash_movement_type = 'cancel_payment'
                AND EXISTS (SELECT 1
                            FROM cash_movements original_payment_movement
                            WHERE original_payment_movement.payment_id = $alias.payment_id
-                             AND original_payment_movement.cash_movement_type = 'fee_payment')))""".trimIndent()
+                             AND original_payment_movement.cash_movement_type IN ('fee_payment', 'new_service'))))""".trimIndent()
+
+    internal fun paymentValueExpression(movementAlias: String, paymentAlias: String): String =
+        "CASE WHEN $movementAlias.cash_movement_type = 'cancel_payment' THEN -$paymentAlias.value ELSE $paymentAlias.value END"
 }

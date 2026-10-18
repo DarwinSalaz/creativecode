@@ -41,12 +41,22 @@ class LiquidationPaymentsReportServiceTest {
     }
 
     @Test
-    fun `only subtracts cancellations that belong to fee payments`() {
+    fun `includes regular and initial payments with their cancellations`() {
         val filter = service.paymentMovementFilter("movement")
 
-        assertTrue(filter.contains("movement.cash_movement_type = 'fee_payment'"))
+        assertTrue(filter.contains("movement.cash_movement_type IN ('fee_payment', 'new_service')"))
         assertTrue(filter.contains("movement.cash_movement_type = 'cancel_payment'"))
         assertTrue(filter.contains("original_payment_movement.payment_id = movement.payment_id"))
-        assertTrue(filter.contains("original_payment_movement.cash_movement_type = 'fee_payment'"))
+        assertTrue(filter.contains("original_payment_movement.cash_movement_type IN ('fee_payment', 'new_service')"))
+    }
+
+    @Test
+    fun `adds payments and subtracts only cancellation movements`() {
+        val expression = service.paymentValueExpression("movement", "payment")
+
+        assertEquals(
+            "CASE WHEN movement.cash_movement_type = 'cancel_payment' THEN -payment.value ELSE payment.value END",
+            expression
+        )
     }
 }
