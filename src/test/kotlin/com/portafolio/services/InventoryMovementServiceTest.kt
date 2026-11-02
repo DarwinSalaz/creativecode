@@ -21,6 +21,7 @@ import org.junit.Assert.fail
 import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.Optional
 
 class InventoryMovementServiceTest {
@@ -124,6 +125,45 @@ class InventoryMovementServiceTest {
         }
 
         verify(movementRepository, never()).save(any<InventoryMovement>())
+    }
+
+    @Test
+    fun `uses the selected date for an inventory entry`() {
+        val selectedDate = LocalDate.now().minusDays(4)
+        whenever(movementRepository.save(any<InventoryMovement>())).thenAnswer { invocation ->
+            invocation.arguments[0] as InventoryMovement
+        }
+
+        val result = service.registerMovement(
+            com.portafolio.dtos.InventoryMovementRequest(
+                firstProduct.productId,
+                MovementType.ENTRADA,
+                2,
+                "Ingreso anterior",
+                wallet.walletId,
+                selectedDate
+            ),
+            5,
+            "admin"
+        )
+
+        assertEquals(selectedDate, result.movementDate.toLocalDate())
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `rejects a future inventory entry date`() {
+        service.registerMovement(
+            com.portafolio.dtos.InventoryMovementRequest(
+                firstProduct.productId,
+                MovementType.ENTRADA,
+                2,
+                null,
+                wallet.walletId,
+                LocalDate.now().plusDays(1)
+            ),
+            5,
+            "admin"
+        )
     }
 
     private fun request(items: List<InventoryMovementBatchItem> = listOf(

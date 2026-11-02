@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.portafolio.entities.MovementType
 import java.time.LocalDateTime
+import java.time.LocalDate
 import javax.validation.Valid
 import javax.validation.constraints.Min
 import javax.validation.constraints.NotEmpty
@@ -20,7 +21,9 @@ data class InventoryMovementRequest(
     @JsonProperty("description")
     val description: String? = null,
     @JsonProperty("wallet_id")
-    val walletId: Int
+    val walletId: Int,
+    @JsonProperty("movement_date")
+    val movementDate: LocalDate? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -44,7 +47,9 @@ data class InventoryMovementBatchRequest(
     @field:Valid
     @field:NotEmpty(message = "Debe incluir al menos un producto")
     @JsonProperty("items")
-    val items: List<InventoryMovementBatchItem>
+    val items: List<InventoryMovementBatchItem>,
+    @JsonProperty("movement_date")
+    val movementDate: LocalDate? = null
 )
 
 @JsonIgnoreProperties(ignoreUnknown = true)

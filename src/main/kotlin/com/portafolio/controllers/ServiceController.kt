@@ -78,6 +78,24 @@ class ServiceController {
         return ResponseEntity(mapOf("code" to "ok", "message" to "success"), HttpStatus.OK)
     }
 
+    @PutMapping("/service/next-payment-date")
+    fun updateNextPaymentDate(
+        @Valid @RequestBody request: NextPaymentDateRequest,
+        @RequestHeader("Authorization") authorization: String
+    ): ResponseEntity<Any> {
+        return try {
+            val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
+            val applicationUsername = applicationUserService.verifyToken(token)
+            applicationUserRepository.findByUsername(applicationUsername)
+                ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
+
+            val updatedDate = service.rescheduleNextPayment(request.serviceId, request.nextPaymentDate)
+            ResponseEntity.ok(NextPaymentDateResponse(request.serviceId, updatedDate))
+        } catch (error: IllegalArgumentException) {
+            ResponseEntity.badRequest().body(mapOf("message" to (error.message ?: "Fecha inválida")))
+        }
+    }
+
     @ExceptionHandler(JwtException::class)
     fun handleConstraintViolation(ex: JwtException): ResponseEntity<Map<String, String>> {
 

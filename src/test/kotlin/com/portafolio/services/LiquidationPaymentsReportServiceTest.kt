@@ -59,4 +59,14 @@ class LiquidationPaymentsReportServiceTest {
             expression
         )
     }
+
+    @Test
+    fun `includes the sold quantity in each product description`() {
+        val expression = service.articleDisplayExpression("product", "service_product")
+
+        assertEquals(
+            "product.name || ' x' || COALESCE(service_product.quantity, 1)",
+            expression
+        )
+    }
 }

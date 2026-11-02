@@ -69,7 +69,18 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "c.name || ' ' || c.last_name as client,\n" +
             "s.service_id as service_id,\n" +
             "p.value as value,\n" +
-            "s.debt as debt,\n" +
+            "s.debt \n" +
+            "  + COALESCE((SELECT SUM(future_payment.value) \n" +
+            "                FROM payments future_payment \n" +
+            "               WHERE future_payment.service_id = s.service_id \n" +
+            "                 AND future_payment.created_at > ?3 \n" +
+            "                 AND future_payment.status != 'canceled'), 0) \n" +
+            "  - COALESCE((SELECT SUM(later_canceled_payment.value) \n" +
+            "                FROM payments later_canceled_payment \n" +
+            "               WHERE later_canceled_payment.service_id = s.service_id \n" +
+            "                 AND later_canceled_payment.created_at <= ?3 \n" +
+            "                 AND later_canceled_payment.status = 'canceled' \n" +
+            "                 AND later_canceled_payment.canceled_at > ?3), 0) as debt,\n" +
             "STRING_AGG(DISTINCT pr.name || ' x' || sp.quantity, ' \n ') as products,\n" +
             "s.created_at as service_created_at,\n" +
             "w.name as wallet,\n" +
@@ -82,7 +93,7 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "left join products pr on sp.product_id = pr.product_id\n" +
             "inner join wallets w on (s.wallet_id = w.wallet_id)\n" +
             "inner join application_users u on (p.application_user_id = u.application_user_id)\n" +
-            "where s.wallet_id = ?1 and p.status != 'canceled' and s.state NOT IN ('canceled', 'deleted') and\n" +
+            "where s.wallet_id = ?1 and (p.status != 'canceled' or p.canceled_at > ?3) and s.state NOT IN ('canceled', 'deleted') and\n" +
             "p.created_at between ?2 and ?3\n" +
             "group by p.payment_id, c.name, c.last_name, s.service_id, p.value, s.debt, s.created_at, w.name, u.username, p.created_at")
     fun reportPayments(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<PaymentReportInterface>

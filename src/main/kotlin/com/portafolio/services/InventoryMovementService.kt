@@ -14,6 +14,9 @@ import com.portafolio.repositories.WalletRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
+import java.time.LocalDate
+import java.time.LocalTime
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 @Service
@@ -25,6 +28,7 @@ class InventoryMovementService(
     
     @Transactional
     fun registerMovement(request: InventoryMovementRequest, userId: Long, username: String): InventoryMovementResponse {
+        validateMovementDate(request.movementType, request.movementDate)
         // Obtener el producto
         val product = productRepository.findById(request.productId)
             .orElseThrow { IllegalArgumentException("Producto no encontrado") }
@@ -54,6 +58,9 @@ class InventoryMovementService(
             newQuantity = newQuantity,
             userId = userId,
             username = username,
+            movementDate = request.movementDate
+                ?.atTime(LocalTime.now().truncatedTo(ChronoUnit.SECONDS))
+                ?: LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS),
             description = request.description,
             walletId = request.walletId
         )
@@ -111,11 +118,22 @@ class InventoryMovementService(
                     movementType = request.movementType,
                     quantity = item.quantity,
                     description = request.description,
-                    walletId = request.walletId
+                    walletId = request.walletId,
+                    movementDate = request.movementDate
                 ),
                 userId,
                 username
             )
+        }
+    }
+
+    private fun validateMovementDate(movementType: MovementType, movementDate: LocalDate?) {
+        if (movementDate == null) return
+        if (movementType != MovementType.ENTRADA) {
+            throw IllegalArgumentException("La fecha manual solo se puede indicar para ingresos de inventario")
+        }
+        if (movementDate.isAfter(LocalDate.now())) {
+            throw IllegalArgumentException("La fecha de ingreso no puede ser futura")
         }
     }
 

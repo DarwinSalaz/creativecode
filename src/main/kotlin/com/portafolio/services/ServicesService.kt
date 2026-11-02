@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Propagation
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDateTime
+import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import org.springframework.transaction.annotation.Transactional
 
@@ -348,6 +349,27 @@ class ServicesService(
     @Transactional
     fun updateNextPaymentDate(nextPaymentDate: LocalDateTime?, serviceId: Long) {
         repository.updateNextPaymentDateService(nextPaymentDate, serviceId)
+    }
+
+    @Transactional
+    fun rescheduleNextPayment(serviceId: Long, nextPaymentDate: LocalDate): LocalDate {
+        if (nextPaymentDate.isBefore(LocalDate.now())) {
+            throw IllegalArgumentException("La fecha del próximo pago no puede ser anterior a hoy")
+        }
+
+        val service = repository.findById(serviceId)
+            .orElseThrow { IllegalArgumentException("Cuenta no encontrada") }
+        if (service.deletedAt != null || service.state in listOf("canceled", "deleted")) {
+            throw IllegalArgumentException("No se puede cambiar la fecha de una cuenta cancelada o eliminada")
+        }
+        if (service.state == "fully_paid" || service.debt.compareTo(BigDecimal.ZERO) == 0) {
+            throw IllegalArgumentException("No se puede cambiar la fecha de una cuenta pagada")
+        }
+
+        service.nextPaymentDate = nextPaymentDate.atStartOfDay()
+        service.hasExpiredPayment = false
+        repository.save(service)
+        return nextPaymentDate
     }
 
     fun getPendingValue(value: BigDecimal, pendingValue: BigDecimal?, feeValue: BigDecimal, state: String): BigDecimal? {

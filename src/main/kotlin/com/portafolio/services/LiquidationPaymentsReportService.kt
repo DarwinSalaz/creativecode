@@ -78,6 +78,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
         val scopeMovementFilter = paymentMovementFilter("scope_m")
         val historicalMovementFilter = paymentMovementFilter("historical_m")
         val historicalPaymentValue = paymentValueExpression("historical_m", "historical_p")
+        val articleDisplay = articleDisplayExpression("p", "sp")
         val scopeSql = if (walletId != null) {
             "s.wallet_id = ?"
         } else {
@@ -108,7 +109,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
             SELECT s.service_id, s.wallet_id, s.created_at, s.fee_value, s.quantity_of_fees,
                    s.total_value, s.down_payment, s.debt, s.state, c.name, c.last_name, c.cellphone, c.address,
                    c.identification_number, COALESCE(s.observations, c.observation) AS observation,
-                   COALESCE((SELECT STRING_AGG(p.name, '||| ' ORDER BY p.name)
+                   COALESCE((SELECT STRING_AGG($articleDisplay, '||| ' ORDER BY p.name, sp.product_id)
                              FROM service_products sp
                              JOIN products p ON p.product_id = sp.product_id
                              WHERE sp.service_id = s.service_id AND (sp.enabled IS NULL OR sp.enabled = TRUE)), '') AS articles,
@@ -206,4 +207,7 @@ class LiquidationPaymentsReportService(private val jdbcTemplate: JdbcTemplate) {
 
     internal fun paymentValueExpression(movementAlias: String, paymentAlias: String): String =
         "CASE WHEN $movementAlias.cash_movement_type = 'cancel_payment' THEN -$paymentAlias.value ELSE $paymentAlias.value END"
+
+    internal fun articleDisplayExpression(productAlias: String, serviceProductAlias: String): String =
+        "$productAlias.name || ' x' || COALESCE($serviceProductAlias.quantity, 1)"
 }

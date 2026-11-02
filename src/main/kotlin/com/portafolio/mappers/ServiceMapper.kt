@@ -203,7 +203,12 @@ class ServiceMapper {
 
     fun mapPaymentReport(paymentReportInterfaces: List<PaymentReportInterface>): PaymentReportResponse {
         val totalValue = paymentReportInterfaces.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.value) }
-        val totalDebt = paymentReportInterfaces.fold(BigDecimal.ZERO) { sum, element -> sum.add(element.debt) }
+        val totalDebt = paymentReportInterfaces
+            .groupBy { it.service_id }
+            .values
+            .fold(BigDecimal.ZERO) { sum, servicePayments ->
+                sum.add(servicePayments.first().debt ?: BigDecimal.ZERO)
+            }
 
         val payments = paymentReportInterfaces.map {
             PaymentReport(
