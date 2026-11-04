@@ -13,3 +13,8 @@ out
 !.elasticbeanstalk/*.cfg.yml
 !.elasticbeanstalk/*.global.yml
 .local/*
+node_modules/
+sports-web/dist/
+sports-web/.angular/
+sports-web/out-tsc/
+__pycache__/

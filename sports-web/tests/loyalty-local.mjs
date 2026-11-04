@@ -1,0 +1,35 @@
+import {chromium} from 'playwright-core';
+import fs from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const config=JSON.parse(await fs.readFile('../.local/sports-local.json','utf8'));
+const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+try{
+ const page=await browser.newPage({viewport:{width:1440,height:1000},timezoneId:'America/Bogota'});
+ page.setDefaultTimeout(10000);
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/*',r=>{const u=new URL(r.request().url());return u.hostname==='127.0.0.1'&&u.port==='5002'?r.continue():r.abort();});
+ await page.goto('http://127.0.0.1:5002/sports/index.html');
+ await page.getByLabel('Identificador del negocio').fill('11111111-1111-4111-8111-111111111111');
+ await page.getByLabel('Usuario',{exact:true}).fill('admin');await page.getByLabel('Contraseña',{exact:true}).fill(config.loginPassword);
+ await page.getByRole('button',{name:'Entrar a mi negocio'}).click();
+ await page.getByRole('button',{name:/Clientes y profesores/}).click();
+ const name='Cliente promoción UI '+Date.now();
+ await page.getByLabel('Nombre',{exact:true}).fill(name);
+ await page.getByRole('button',{name:'Guardar contacto',exact:true}).click();
+ const row=page.locator('.contact-row').filter({hasText:name});await row.getByRole('button',{name:'Promoción',exact:true}).click();
+ await page.locator('select[name=reward]').selectOption({label:'Siguiente partido al 50%'});
+ await page.getByRole('button',{name:'Guardar promoción',exact:true}).click();
+ await page.getByText('Promoción guardada',{exact:true}).waitFor();
+ await page.reload();await page.getByRole('button',{name:/Clientes y profesores/}).click();
+ await page.locator('.contact-row').filter({hasText:name}).getByRole('button',{name:'Promoción',exact:true}).click();
+ assert.equal(await page.locator('select[name=reward]').locator('option:checked').innerText(),'Siguiente partido al 50%');
+ await page.getByText('Configuración actualizada',{exact:false}).waitFor();
+ await page.setViewportSize({width:390,height:844});
+ assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+ await page.getByRole('button',{name:'Nueva reserva'}).click();
+ await page.locator('.modal select[name=client]').selectOption({label:name});
+ assert.equal(await page.getByLabel('Nombre del cliente').inputValue(),name);
+ await page.locator('.modal .notice').filter({hasText:'0 de 5 partidos · siguiente al 50%'}).waitFor();
+ assert.equal(errors.length,0,errors.join('\n'));
+ console.log('PASS: actual local browser creates client, configures promotion, verifies persistence after reload and shows benefit in mobile reservation.');
+}finally{await browser.close();}
