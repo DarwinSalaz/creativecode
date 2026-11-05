@@ -4,7 +4,7 @@ Deportes se compila dentro del mismo JAR Kotlin/Spring Boot de ventas. El fronte
 
 ## Estado y límite de autorización
 
-Implementación local con una instancia PostgreSQL independiente autorizada el 3 de noviembre de 2026. Se aplicaron V001, V002 y V003 y se crearon datos ficticios **solo en localhost**. Producción y Neon no se han modificado; el módulo sigue desactivado por defecto en la configuración normal.
+Implementación con esquema deportivo aislado. V001–V004 están versionadas; V004 conserva el UUID interno y permite un alias público para iniciar sesión. El módulo sigue desactivado por defecto en la configuración normal y se habilita únicamente con el perfil `sports`.
 
 Ya funcionan login y reservas con persistencia real local. Ver [inicio y acceso local](../docs/sports/LOCAL_SETUP.md). Las pruebas originales sin BD siguen disponibles; ahora también hay pruebas explícitas de integración local. La validación productiva y la regresión completa de ventas siguen pendientes.
 

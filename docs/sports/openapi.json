@@ -3436,7 +3436,8 @@
         "properties": {
           "tenantId": {
             "type": "string",
-            "format": "uuid"
+            "description": "Alias público del negocio o UUID interno legado",
+            "example": "centenario"
           },
           "username": {
             "type": "string"

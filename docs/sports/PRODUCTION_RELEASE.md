@@ -4,7 +4,7 @@ Autorizada por el usuario: crear las tablas deportivas y publicar el módulo sin
 
 ## Base de datos preparada
 
-Aplicadas V001, V002 y V003 en la rama productiva de Neon. Se creó el esquema `sports` con 14 tablas, un rol SQL `sports_runtime` limitado y un negocio con administrador. No se copiaron datos ficticios locales. Las 21 tablas de ventas conservan estructura y permisos (huella antes/después `dd4569add018ca448e1e1eb778064a0f`). El rol deportivo no puede leer/escribir tablas de ventas ni crear objetos en `public`.
+Aplicadas V001–V004 en la rama productiva de Neon. V004 agrega un alias público de acceso sin modificar el UUID interno ni sus relaciones; el negocio inicial usa `centenario`. Se creó el esquema `sports` con 14 tablas, un rol SQL `sports_runtime` limitado y un negocio con administrador. No se copiaron datos ficticios locales. Las 21 tablas de ventas conservan estructura y permisos (huella antes/después `dd4569add018ca448e1e1eb778064a0f`). El rol deportivo no puede leer/escribir tablas de ventas ni crear objetos en `public`.
 
 Ensayo previo sobre rama independiente con PostgreSQL 18 y Java 17 aprobado: autenticación deportiva, cancha, reserva pendiente, confirmación, inicio y finalización; lectura de status y productos de ventas mediante sus rutas originales.
 

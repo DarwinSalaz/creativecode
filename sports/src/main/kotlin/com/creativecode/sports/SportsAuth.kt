@@ -10,9 +10,11 @@ import java.util.Base64
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-data class LoginInput(val tenantId: UUID, val username: String, val password: String)
+data class LoginInput(val tenantId: String, val username: String, val password: String)
 data class UserInput(val username: String, val name: String, val password: String, val role: Role = Role.EMPLOYEE)
 data class UserView(val id: UUID, val username: String, val name: String, val role: Role, val active: Boolean)
+internal fun validTenantIdentifier(identifier: String) =
+    identifier.length in 2..63 && identifier.matches(Regex("[a-z0-9][a-z0-9-]*"))
 class SportsAuth(private val store: PostgresSportsStore) {
     private val passwords = BCryptPasswordEncoder(12)
     private val dummyHash = passwords.encode(UUID.randomUUID().toString())
@@ -20,7 +22,8 @@ class SportsAuth(private val store: PostgresSportsStore) {
     private val failures = ConcurrentHashMap<String, Pair<Long, Int>>()
     private val actorMapper = RowMapper { r: java.sql.ResultSet, _: Int -> Actor(UUID.fromString(r.getString("id")), UUID.fromString(r.getString("tenant_id")), r.getString("name"), Role.valueOf(r.getString("role"))) }
     @Synchronized fun login(input: LoginInput, remote: String): Map<String, Any> {
-        checkSports(input.username.length in 1..100 && input.password.length in 1..200, "INVALID_LOGIN", "Credenciales inválidas", 401)
+        val tenantIdentifier = input.tenantId.trim().toLowerCase(java.util.Locale.ROOT)
+        checkSports(validTenantIdentifier(tenantIdentifier) && input.username.length in 1..100 && input.password.length in 1..200, "INVALID_LOGIN", "Credenciales inválidas", 401)
         val now = Instant.now(); val window = now.epochSecond / 300
         if (failures.size > 10000) failures.entries.removeIf { it.value.first != window }
         checkSports(failures.size < 20000, "RATE_LIMIT", "Intenta más tarde", 429)
@@ -29,14 +32,15 @@ class SportsAuth(private val store: PostgresSportsStore) {
         val attempts = if (previous?.first == window) previous.second else 0
         checkSports(attempts < 10, "RATE_LIMIT", "Demasiados intentos; espera cinco minutos", 429)
         failures[key] = Pair(window, attempts + 1)
-        val users = store.jdbc.queryForList("SELECT id,password_hash,active FROM sports.users WHERE tenant_id=? AND username=?",input.tenantId,input.username.trim().toLowerCase(java.util.Locale.ROOT))
+        val tenantId = resolveTenantId(tenantIdentifier)
+        val users = store.jdbc.queryForList("SELECT id,password_hash,active FROM sports.users WHERE tenant_id=? AND username=?",tenantId,input.username.trim().toLowerCase(java.util.Locale.ROOT))
         val user = users.firstOrNull()
         val matches = passwords.matches(input.password, user?.get("password_hash") as? String ?: dummyHash)
         checkSports(matches && user?.get("active") == true, "INVALID_LOGIN", "Credenciales inválidas", 401)
         val bytes = ByteArray(32); random.nextBytes(bytes)
         val token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
         val expiry = now.plusSeconds(12 * 3600)
-        store.jdbc.update("INSERT INTO sports.sessions(token_hash,tenant_id,user_id,expires_at) VALUES (?,?,?,?)", hash(token),input.tenantId,user!!["id"],Timestamp.from(expiry))
+        store.jdbc.update("INSERT INTO sports.sessions(token_hash,tenant_id,user_id,expires_at) VALUES (?,?,?,?)", hash(token),tenantId,user!!["id"],Timestamp.from(expiry))
         return mapOf("token" to token, "expiresAt" to expiry, "actor" to authenticate("Bearer $token"))
     }
     fun authenticate(header: String?): Actor {
@@ -60,6 +64,12 @@ class SportsAuth(private val store: PostgresSportsStore) {
         a.admin(); checkSports(id != a.id,"SELF_DEACTIVATION","No puedes desactivar tu propia cuenta")
         checkSports(store.jdbc.update("UPDATE sports.users SET active=false WHERE tenant_id=? AND id=?",a.tenantId,id)==1,"NOT_FOUND","Usuario no encontrado",404)
         store.audit(a,id,"USER_DEACTIVATED",null)
+    }
+    private fun resolveTenantId(identifier: String): UUID {
+        val uuid = try { UUID.fromString(identifier) } catch (_: IllegalArgumentException) { null }
+        if (uuid != null) return uuid
+        return store.jdbc.queryForList("SELECT id FROM sports.tenants WHERE slug=?", UUID::class.java, identifier).firstOrNull()
+            ?: UUID.randomUUID()
     }
     private fun hash(s: String) = MessageDigest.getInstance("SHA-256").digest(s.toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it) }
 }
