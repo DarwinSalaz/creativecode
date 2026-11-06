@@ -1,3 +1,18 @@
+# Publicación de Caja y cierres — 5 noviembre 2026
+
+- Autorizada por el usuario. V005 aplicada en producción con nueve tablas `sports.finance_*`, sin datos ficticios.
+- Ensayo en la rama temporal `br-empty-term-b7i9btbd` (expira 12 noviembre, 23:59 UTC), incluyendo ejecución del JAR conjunto con Java 17 y el rol `sports_runtime`.
+- Verificación dentro de una transacción con snapshot estable: ninguna fila previa de ventas o deportes modificada por la migración. Estructura y permisos de las 21 tablas de ventas conservaron la huella `dd4569add018ca448e1e1eb778064a0f`.
+- Paquete probado: `build/libs/creativecode-1.0.jar`. Publicación por el flujo automático de Koyeb al actualizar `master`. No se cambian variables, credenciales ni el arranque de ventas.
+- URL: https://creative-code-darwinsalaz.koyeb.app/sports/index.html
+- Verificación pública: `python3 scripts/sports/verify-finance-public.py --wait 600`; comprueba hash del bundle, estado/lectura de productos de ventas y endpoints deportivos autenticados. Evidencia privada: `.local/sports-release/finance-public-verified.json`.
+- Respaldo del JAR remoto anterior: `.local/sports-release/pre-finance-deployed.jar`. Para revertir el código, desplegar ese JAR y conservar las tablas financieras; no restaurar toda la base de ventas.
+- Límites operativos de la primera versión documentados en [FINANCE.md](FINANCE.md).
+
+---
+
+## Registro histórico de la primera publicación
+
 # Publicación deportiva — 4 noviembre 2026
 
 Autorizada por el usuario: crear las tablas deportivas y publicar el módulo sin alterar ventas.

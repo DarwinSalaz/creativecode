@@ -34,7 +34,7 @@ if not query("SELECT 1 FROM pg_namespace WHERE nspname='sports';",DB):
     path.write_text(json.dumps(config,indent=2)+'\n');path.chmod(0o600)
 else:
     if config.get('migrationSha256')!=digest:raise SystemExit('Migration checksum changed; prepare a new version, do not overwrite the schema')
-    if query('SELECT version FROM sports.schema_history ORDER BY version;',DB) not in ('1','1\n2','1\n2\n3','1\n2\n3\n4'):raise SystemExit('Unexpected sports migration history')
+    if query('SELECT version FROM sports.schema_history ORDER BY version;',DB) not in ('1','1\n2','1\n2\n3','1\n2\n3\n4','1\n2\n3\n4\n5'):raise SystemExit('Unexpected sports migration history')
 migration2=ROOT/'sports/migrations/V002__optional_team_name.sql'
 digest2=hashlib.sha256(migration2.read_bytes()).hexdigest()
 if not query('SELECT 1 FROM sports.schema_history WHERE version=2;',DB):
@@ -59,8 +59,17 @@ if not query('SELECT 1 FROM sports.schema_history WHERE version=4;',DB):
     path.write_text(json.dumps(config,indent=2)+'\n');path.chmod(0o600)
 elif config.get('migrationV004Sha256')!=digest4:
     raise SystemExit('V004 checksum changed; prepare a new migration')
+migration5=ROOT/'sports/migrations/V005__daily_finance.sql'
+digest5=hashlib.sha256(migration5.read_bytes()).hexdigest()
+if not query('SELECT 1 FROM sports.schema_history WHERE version=5;',DB):
+    query(migration5.read_text(),DB)
+    config['migrationV005Sha256']=digest5
+    path.write_text(json.dumps(config,indent=2)+'\n');path.chmod(0o600)
+elif config.get('migrationV005Sha256')!=digest5:
+    raise SystemExit('V005 checksum changed; prepare a new migration')
 query('''GRANT USAGE ON SCHEMA sports TO sports_app;
 GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA sports TO sports_app;
+REVOKE UPDATE,DELETE ON sports.finance_entries,sports.finance_days,sports.finance_months,sports.finance_commands,sports.finance_handover_days,sports.finance_receipts FROM sports_app;
 REVOKE UPDATE ON sports.audit_events FROM sports_app;
 REVOKE UPDATE,DELETE ON sports.loyalty_ledger FROM sports_app;
 REVOKE INSERT,UPDATE ON sports.schema_history FROM sports_app;
@@ -68,7 +77,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA public;
 ''',DB)
 tenant='11111111-1111-4111-8111-111111111111'
 settings=json.dumps({'name':'Canchas · pruebas locales','timezone':'America/Bogota','currency':'COP','toleranceMinutes':15,'waterMinutes':30,'warningMinutes':5})
-query("INSERT INTO sports.tenants(id,settings) VALUES ("+quote(tenant)+","+quote(settings)+"::jsonb) ON CONFLICT DO NOTHING;",DB)
+query("INSERT INTO sports.tenants(id,slug,settings) VALUES ("+quote(tenant)+","+quote(tenant)+","+quote(settings)+"::jsonb) ON CONFLICT DO NOTHING;",DB)
 for suffix,name,role in [('1','admin','ADMIN'),('2','empleado1','EMPLOYEE'),('3','empleado2','EMPLOYEE')]:
     uid='22222222-2222-4222-8222-22222222222'+suffix
     query("INSERT INTO sports.users(tenant_id,id,username,name,password_hash,role) VALUES ("+','.join([quote(tenant),quote(uid),quote(name),quote('Prueba '+name),'public.crypt('+quote(config['loginPassword'])+",public.gen_salt('bf',12))",quote(role)])+") ON CONFLICT DO NOTHING;",DB)
@@ -78,4 +87,4 @@ for uid,name,color in [('33333333-3333-4333-8333-333333333333','Cancha 1','#167d
 access=LOCAL/'sports-local-access.txt'
 access.write_text('SOLO PRUEBAS LOCALES\nURL: http://localhost:5002/sports/index.html\nNegocio: '+tenant+'\nUsuarios: admin, empleado1, empleado2\nContraseña local: '+config['loginPassword']+'\n')
 access.chmod(0o600)
-print('PASS: isolated sports_local on port 55432; migrations V001-V004; 3 local accounts and 2 courts. Access details: .local/sports-local-access.txt')
+print('PASS: isolated sports_local on port 55432; migrations V001-V005; 3 local accounts and 2 courts. Access details: .local/sports-local-access.txt')

@@ -9,7 +9,7 @@ try{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/*',r=>{const u=new URL(r.request().url());return u.hostname==='127.0.0.1'&&u.port==='5002'?r.continue():r.abort();});
  await page.goto('http://127.0.0.1:5002/sports/index.html');
- await page.getByLabel('Identificador del negocio').fill('11111111-1111-4111-8111-111111111111');
+ await page.locator('input[name=tenant]').fill('11111111-1111-4111-8111-111111111111');
  await page.getByLabel('Usuario',{exact:true}).fill('admin');await page.getByLabel('Contraseña',{exact:true}).fill(config.loginPassword);
  await page.getByRole('button',{name:'Entrar a mi negocio'}).click();
  await page.getByRole('button',{name:/Clientes y profesores/}).click();
@@ -20,6 +20,14 @@ try{
  await page.locator('select[name=reward]').selectOption({label:'Siguiente partido al 50%'});
  await page.getByRole('button',{name:'Guardar promoción',exact:true}).click();
  await page.getByText('Promoción guardada',{exact:true}).waitFor();
+ await page.setViewportSize({width:390,height:844});
+ await row.getByRole('button',{name:'Editar cliente '+name,exact:true}).click();
+ const contactEditor=page.locator('#contact-editor');
+ await contactEditor.getByLabel('Teléfono',{exact:true}).fill('3001234567');
+ await contactEditor.getByRole('button',{name:'Guardar cambios del cliente',exact:true}).click();
+ await page.getByText('Cliente actualizado',{exact:true}).waitFor();
+ assert.equal(await row.count(),1,'Editing does not create a duplicate client');
+ await row.getByText('3001234567',{exact:true}).waitFor();
  await page.reload();await page.getByRole('button',{name:/Clientes y profesores/}).click();
  await page.locator('.contact-row').filter({hasText:name}).getByRole('button',{name:'Promoción',exact:true}).click();
  assert.equal(await page.locator('select[name=reward]').locator('option:checked').innerText(),'Siguiente partido al 50%');
@@ -29,6 +37,7 @@ try{
  await page.getByRole('button',{name:'Nueva reserva'}).click();
  await page.locator('.modal select[name=client]').selectOption({label:name});
  assert.equal(await page.getByLabel('Nombre del cliente').inputValue(),name);
+ assert.equal(await page.getByLabel('Teléfono (opcional)').inputValue(),'3001234567');
  await page.locator('.modal .notice').filter({hasText:'0 de 5 partidos · siguiente al 50%'}).waitFor();
  assert.equal(errors.length,0,errors.join('\n'));
  console.log('PASS: actual local browser creates client, configures promotion, verifies persistence after reload and shows benefit in mobile reservation.');

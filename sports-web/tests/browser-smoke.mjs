@@ -30,7 +30,7 @@ try {
  await page.goto(base+'index.html');await page.getByRole('heading',{name:'Tu jornada empieza aquí'}).waitFor();
  await fs.mkdir('../docs/sports/screenshots',{recursive:true});
  await page.screenshot({path:'../docs/sports/screenshots/login-desktop.png',fullPage:true});
- await page.getByLabel('Identificador del negocio').fill(tenant);await page.getByLabel('Usuario',{exact:true}).fill('test');await page.getByLabel('Contraseña',{exact:true}).fill('fixture-password');await page.getByRole('button',{name:'Entrar a mi negocio'}).click();
+ await page.getByLabel('Negocio',{exact:true}).fill(tenant);await page.getByLabel('Usuario',{exact:true}).fill('test');await page.getByLabel('Contraseña',{exact:true}).fill('fixture-password');await page.getByRole('button',{name:'Entrar a mi negocio'}).click();
  await page.getByRole('heading',{name:'Una buena jornada empieza con orden.'}).waitFor();
  const day=await page.getByLabel('Fecha de agenda').inputValue();
  await page.getByRole('button',{name:`Reservar Cancha 2 el ${day} a las 18:00`,exact:true}).click();

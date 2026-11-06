@@ -66,3 +66,21 @@ Panel de ancho completo con filtro de cancha, siete días visibles por cancha, f
 ## Estado inicial de las reservas
 
 Nuevas reservas por formulario y solicitudes API sin estado explícito comienzan en PENDING (Por confirmar). Pruebas backend y navegador aprobadas: se envía PENDING, iniciar sin confirmar se rechaza y confirmar permite iniciar. Reservas existentes conservan su estado. Sin migración de datos.
+
+## Edición de clientes — 5 noviembre 2026
+
+Editar carga una copia de nombre, teléfono y notas conservando el ID. El guardado reutiliza el endpoint deportivo existente y permite cancelar la edición. Chrome contra la base local verificó: crear sin teléfono, configurar promoción, editar desde móvil, guardar teléfono sin duplicar cliente, recargar conservando promoción y autocompletar teléfono en nueva reserva. Compilación y JAR aprobados. Sin migraciones ni escrituras en producción para esta mejora.
+
+## Caja y cierres — 2026-11-05 (solo local)
+
+- 76 pruebas Kotlin pasan: 27 del backend existente y 49 deportivas, incluidas 13 financieras nuevas.
+- 11 pruebas JavaScript existentes pasan; smoke de navegador de reservas/tarifas pasa.
+- Integración real sobre `127.0.0.1:55432/sports_local`: base excluida, cuentas receptoras, entregas acumuladas, faltante con nota, aceptación idempotente concurrente, cierre diario concurrente (un éxito y un conflicto), gastos, mes cerrado inmutable, ajustes y bloqueo de escrituras históricas. Comparación de metadatos/filas locales de ventas sin cambios.
+- V005 aplicada exclusivamente al clúster local. Detalle funcional y pasos de publicación pendientes en [FINANCE.md](FINANCE.md).
+- Navegador real con empleado y administrador: cierre con efectivo y transferencia, gasto con PDF y descarga, entrega total, aceptación con faltante, cuenta con titular y resumen mensual. Formularios sin desbordamiento a 320/390/760 px. Capturas: `screenshots/finance-month-desktop.png` y `screenshots/finance-daily-mobile.png`.
+
+## Ensayo y migración productiva de caja — 5 noviembre 2026
+
+- V005 ensayada sobre una rama de producción; JAR conjunto ejecutado con Java 17 y el rol deportivo real. Pasaron autenticación, cierre mixto, reintento idempotente, gasto, entrega, faltante, saldos y reporte mensual; ventas respondió correctamente.
+- V005 aplicada en producción con verificación transaccional de filas preexistentes y huella de esquema/permisos de ventas sin cambios. Sin registros financieros ficticios en producción.
+- Verificación pública reproducible con `scripts/sports/verify-finance-public.py`; registro privado de resultados en `.local/sports-release/finance-public-verified.json`.

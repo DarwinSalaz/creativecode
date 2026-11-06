@@ -2,12 +2,13 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonApp, IonContent } from '@ionic/angular';
+import { FinanceComponent } from './finance/finance.component';
 import { ApiService } from './auth/api.service';
 import { Actor,Booking,Court,Contact,Settings,Operations,labels } from './reservations/models';
 import {matchTiming,clockLabel,alertKeys} from './operations/timer.mjs';
 import {availableRewardPercent,priceQuote,scheduledPrice,reservationQuote} from './reservations/price-quote.mjs';
 
-@Component({selector:'sports-app',standalone:true,imports:[CommonModule,FormsModule,IonApp,IonContent],templateUrl:'./app.component.html',styleUrls:['./app.component.css']})
+@Component({selector:'sports-app',standalone:true,imports:[CommonModule,FormsModule,IonApp,IonContent,FinanceComponent],templateUrl:'./app.component.html',styleUrls:['./app.component.css']})
 export class AppComponent implements OnInit,OnDestroy {
   slots=Array.from({length:24},(_,i)=>i*60);
   hours=Array.from({length:24},(_,i)=>i); clientSearch='';
@@ -16,7 +17,7 @@ export class AppComponent implements OnInit,OnDestroy {
   settings:Settings={name:'Cancha',timezone:'America/Bogota',currency:'COP',toleranceMinutes:15,waterMinutes:30,warningMinutes:5};
   error=''; notice=''; busy=false; refreshing=false; loading=false; lastSync=''; now=Date.now(); serverAnchor=Date.now(); performanceAnchor=performance.now();
   login={tenantId:localStorage.getItem('sports.business')||'',username:'',password:''};
-  editor=false; editing?:Booking; form:any={}; contact={name:'',phone:'',notes:''}; contactTeacher=false;
+  editor=false; editing?:Booking; form:any={}; contact:{id?:string;name:string;phone:string;notes:string}={name:'',phone:'',notes:''}; contactTeacher=false;
   courtForm:any={name:'',sport:'Fútbol',capacity:10,durationMinutes:60,color:'#167d69',active:true};
   venues:any[]=[]; venueForm:any={name:'',address:''};
   pricingEditor=false; pricingCourtFilter=''; weekdays=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
@@ -136,7 +137,10 @@ export class AppComponent implements OnInit,OnDestroy {
   async saveLoyalty(){if(!this.loyaltyClient)return;const id=this.loyaltyClient.id;await this.run(async()=>{await this.api.request(`/clients/${id}/loyalty`,'PUT',{policy:this.loyaltyForm,version:this.loyaltyVersion});await this.refresh();this.loyaltyVersion=this.loyaltyFor(id).state.version;this.loyaltyEvents=await this.api.request<any[]>(`/clients/${id}/loyalty/history`);this.notice='Promoción guardada';});}
   async extendLoyalty(){if(!this.loyaltyClient)return;const id=this.loyaltyClient.id;await this.run(async()=>{await this.api.request(`/clients/${id}/loyalty/exception`,'POST',{until:this.localInstant(this.exceptionDate+'T23:59'),reason:this.exceptionReason,version:this.loyaltyVersion});await this.refresh();this.loyaltyVersion=this.loyaltyFor(id).state.version;this.loyaltyEvents=await this.api.request<any[]>(`/clients/${id}/loyalty/history`);this.notice='Excepción registrada';});}
   loyaltyEvent(type:string){return ({POLICY_UPDATED:'Configuración actualizada',PLAYED:'Partido contabilizado',REDEEMED:'Beneficio aplicado',CYCLE_EXPIRED:'Racha reiniciada',GAP_EXCEPTION:'Prórroga justificada'} as any)[type]||type;}
-  async saveContact(){await this.run(async()=>{await this.api.request(this.contactTeacher?'/teachers':'/clients','POST',this.contact);this.contact={name:'',phone:'',notes:''};await this.refresh();this.notice='Contacto guardado';});}
+  editClient(c:Contact){if(this.busy)return;this.contactTeacher=false;this.contact={id:c.id,name:c.name,phone:c.phone||'',notes:c.notes||''};this.error='';setTimeout(()=>{document.getElementById('contact-editor')?.scrollIntoView({behavior:'smooth',block:'center'});document.querySelector<HTMLInputElement>('#contact-editor input[name=phone]')?.focus({preventScroll:true});},0);}
+  resetContact(){this.contact={name:'',phone:'',notes:''};this.contactTeacher=false;}
+  async saveContact(){await this.run(async()=>{const editing=!!this.contact.id;const saved=await this.api.request<Contact>(this.contactTeacher?'/teachers':'/clients','POST',this.contact);if(this.loyaltyClient?.id===saved.id)this.loyaltyClient=saved;this.resetContact();await this.refresh();this.notice=editing?'Cliente actualizado':'Contacto guardado';});}
+
   async loadHistory(c:Contact){await this.run(async()=>{this.history=await this.api.request<Booking[]>(`/clients/${c.id}/history`);this.notice=`Historial de ${c.name} (hasta 200 registros)`;});}
   async saveVenue(){await this.run(async()=>{await this.api.request('/venues','POST',this.venueForm);this.venues=await this.api.request<any[]>('/venues');this.venueForm={name:'',address:''};this.notice='Sede guardada';});}
   async saveCourt(){await this.run(async()=>{await this.api.request('/courts','POST',this.courtForm);this.courtForm={name:'',sport:'Fútbol',capacity:10,durationMinutes:60,color:'#167d69',active:true};await this.refresh();this.notice='Cancha guardada';});}
