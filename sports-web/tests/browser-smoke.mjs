@@ -69,6 +69,17 @@ await page.getByRole('button',{name:'Guardar reserva',exact:true}).click();await
  assert.equal((await total.innerText()).replace(/[^0-9]/g,''),'90000','Finished fifth match must retain full price despite next reward');
  assert.equal(await page.locator('.modal').getByText(/Promoción disponible/).count(),0);
  await page.getByRole('button',{name:'Cerrar',exact:true}).click();
+ bookings[0]={...bookings[0],status:'CONFIRMED'};
+ await page.getByRole('button',{name:/Actualizar/}).click();
+ await page.locator('.booking.has-promotion .promotion-chip').first().waitFor();
+ assert.match(await page.locator('.booking.has-promotion .promotion-chip').first().innerText(),/GRATIS/);
+ await page.getByRole('button',{name:/Carlos Pérez/}).first().click();
+ await page.locator('.modal .promotion-price .promotion-chip').waitFor();
+ assert.equal((await total.innerText()).replace(/[^0-9]/g,''),'0');
+ await page.setViewportSize({width:390,height:844});
+ assert.ok(await page.locator('.modal').evaluate(el=>el.scrollWidth<=el.clientWidth));
+ await page.getByRole('button',{name:'Cerrar',exact:true}).click();
+ await page.setViewportSize({width:1440,height:1000});
  loyalty=[];
  bookings[0]={...bookings[0],status:'IN_PROGRESS',actualStartedAt:new Date(Date.now()-31*60000).toISOString(),version:1};
  await page.getByRole('button',{name:'En cancha'}).click();await page.getByText('Agua pendiente',{exact:false}).waitFor();await page.screenshot({path:'../docs/sports/screenshots/operations-desktop.png',fullPage:true});

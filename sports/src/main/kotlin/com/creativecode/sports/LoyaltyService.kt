@@ -7,6 +7,7 @@ import java.util.UUID
 data class LoyaltyPolicy(val requiredMatches: Int = 5, val rewardPercent: Int = 100, val maxGapDays: Int = 21, val active: Boolean = true)
 data class LoyaltyState(val policy: LoyaltyPolicy = LoyaltyPolicy(), val played: Int = 0, val rewardReady: Boolean = false, val lastPlayedAt: Instant? = null, val graceUntil: Instant? = null, val version: Int = 0)
 data class LoyaltyChange(val policy: LoyaltyPolicy, val version: Int = 0)
+data class LoyaltyProgress(val played: Int, val reason: String, val version: Int)
 data class LoyaltyException(val until: Instant, val reason: String, val version: Int)
 data class LoyaltyEvent(val id: UUID = UUID.randomUUID(), val clientId: UUID, val reservationId: UUID? = null, val type: String, val at: Instant, val reason: String? = null, val rewardPercent: Int = 0, val state: LoyaltyState)
 data class LoyaltySummary(val clientId: UUID, val state: LoyaltyState, val effectivePlayed: Int, val expired: Boolean)
@@ -26,6 +27,15 @@ class LoyaltyService(private val store: SportsStore, private val clock: Clock = 
         checkSports(old==null || (old.played==0 && !old.rewardReady) || (old.policy.requiredMatches==p.requiredMatches && old.policy.rewardPercent==p.rewardPercent),"LOYALTY_CYCLE_ACTIVE","Termina el ciclo antes de cambiar la meta o el beneficio",409)
         val next=(old?:LoyaltyState()).copy(policy=p,version=(old?.version?:0)+1)
         record(a,id,next,"POLICY_UPDATED")
+        summary(id,next)
+    }
+    fun progress(a: Actor,id: UUID,input: LoyaltyProgress): LoyaltySummary = store.transaction {
+        a.admin();store.lockClient(a.tenantId,id)
+        val old=store.loyaltyState(a.tenantId,id)?:throw SportsError("NOT_FOUND","Cliente sin promoción",404)
+        checkSports(input.version==old.version,"STALE_VERSION","La promoción cambió; actualiza antes de ajustar el avance",409)
+        checkSports(input.played in 0..old.policy.requiredMatches && input.reason.isNotBlank() && input.reason.length<=500,"INVALID_PROGRESS","Indica un avance entre cero y la meta y un motivo de máximo 500 caracteres")
+        val next=old.copy(played=input.played,rewardReady=input.played==old.policy.requiredMatches,lastPlayedAt=if(input.played>0)clock.instant() else null,graceUntil=null,version=old.version+1)
+        record(a,id,next,"PROGRESS_ADJUSTED",reason="Avance ${old.played} → ${input.played}. "+input.reason.trim())
         summary(id,next)
     }
     fun exception(a: Actor,id: UUID,input: LoyaltyException): LoyaltySummary = store.transaction {

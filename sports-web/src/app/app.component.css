@@ -43,3 +43,6 @@
 .price-summary--form {
   margin: 4px 0 18px;
 }
+.promotion-chip{display:block!important;background:#fff0a6;color:#533b00!important;border:1px solid #d9ad24;border-radius:6px;padding:4px 8px;font-size:12px!important;font-weight:800!important;white-space:normal;line-height:1.35}.booking.has-promotion{background:#fff8d9;box-shadow:inset 0 0 0 2px #d9ad24}.booking .promotion-chip{padding:1px 4px;font-size:10px!important}.price-summary.promotion-price{border:2px solid #d9ad24;background:#fff9df}.promotion-price .price-total{font-size:19px}.promotion-price .price-total strong{font-size:23px}
+
+.booking.has-promotion{padding-top:2px;padding-bottom:2px}.booking.has-promotion strong{line-height:12px}.booking.has-promotion .promotion-chip{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:12px;padding:0 2px}.booking.has-promotion>small:last-child{line-height:11px}

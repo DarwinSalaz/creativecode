@@ -3376,6 +3376,70 @@
           }
         ]
       }
+    },
+    "/clients/{id}/loyalty/progress": {
+      "post": {
+        "summary": "Ajustar avance del ciclo de promoción (solo ADMIN)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "played",
+                  "reason",
+                  "version"
+                ],
+                "properties": {
+                  "played": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Máximo: meta actual (5 o 10). Al llegar a la meta queda disponible el beneficio."
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 500
+                  },
+                  "version": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Avance guardado con historial; no cambia reservas previas. Reinicia plazo y elimina prórroga."
+          },
+          "400": {
+            "description": "Avance o motivo inválido"
+          },
+          "403": {
+            "description": "Requiere administrador"
+          },
+          "404": {
+            "description": "Cliente o promoción no existe en este negocio"
+          },
+          "409": {
+            "description": "Versión desactualizada"
+          }
+        }
+      }
     }
   },
   "components": {

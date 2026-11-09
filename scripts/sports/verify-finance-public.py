@@ -41,6 +41,7 @@ try:
   assert 'movements' in statement and all('sourceDays' in m for m in statement['movements'])
   checks['financeAccountStatement']=code
  checks['financeMonth']=request('/api/sports/v1/finance/report?month='+overview['today'][:7],token=token)[0]
+ checks['sportsLoyalty']=request('/api/sports/v1/loyalty',token=token)[0]
  checks['sportsCourts']=request('/api/sports/v1/courts',token=token)[0]
 finally:request('/api/sports/v1/auth/logout',{},token)
 checks.update(verifiedAt=datetime.datetime.now(datetime.timezone.utc).isoformat(),url=BASE+'/sports/index.html',jarSha256=hashlib.sha256(jar.read_bytes()).hexdigest())

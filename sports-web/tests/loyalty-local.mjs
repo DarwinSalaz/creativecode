@@ -20,6 +20,12 @@ try{
  await page.locator('select[name=reward]').selectOption({label:'Siguiente partido al 50%'});
  await page.getByRole('button',{name:'Guardar promoción',exact:true}).click();
  await page.getByText('Promoción guardada',{exact:true}).waitFor();
+ await page.getByLabel('Partidos acumulados en este ciclo').fill('5');
+ await page.getByLabel('Motivo del ajuste').fill('Partidos previos a la aplicación');
+ await page.getByRole('button',{name:'Guardar avance',exact:true}).click();
+ await page.getByText('Avance actualizado; las reservas anteriores conservan sus valores.',{exact:true}).waitFor();
+ await page.getByText('Avance ajustado por administrador',{exact:false}).waitFor();
+ assert.equal(await page.getByLabel('Partidos acumulados en este ciclo').inputValue(),'5');
  await page.setViewportSize({width:390,height:844});
  await row.getByRole('button',{name:'Editar cliente '+name,exact:true}).click();
  const contactEditor=page.locator('#contact-editor');
@@ -38,7 +44,7 @@ try{
  await page.locator('.modal select[name=client]').selectOption({label:name});
  assert.equal(await page.getByLabel('Nombre del cliente').inputValue(),name);
  assert.equal(await page.getByLabel('Teléfono (opcional)').inputValue(),'3001234567');
- await page.locator('.modal .notice').filter({hasText:'0 de 5 partidos · siguiente al 50%'}).waitFor();
+ await page.locator('.modal .notice').filter({hasText:'Beneficio disponible: 50% de descuento'}).waitFor();
  assert.equal(errors.length,0,errors.join('\n'));
  console.log('PASS: actual local browser creates client, configures promotion, verifies persistence after reload and shows benefit in mobile reservation.');
 }finally{await browser.close();}

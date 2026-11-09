@@ -92,3 +92,12 @@ Editar carga una copia de nombre, teléfono y notas conservando el ID. El guarda
 - Esta entrega no incorpora ni ejecuta migraciones. El extracto consulta `finance_entries`, `finance_days` y `finance_handover_days` existentes.
 - Navegador local: flujo completo de efectivo/transferencias/gastos/recepción conservado. Vista administrativa sin entrega obligatoria, consulta de cierres del mes anterior, cambio de mes y diseño sin desbordamientos a 320/390/760 px. Capturas `finance-statement-desktop.png` y `finance-statement-mobile.png`.
 - Comparación de artefactos antes de publicar: todas las clases `com/portafolio` y `application.properties` idénticas al JAR productivo anterior; entre las librerías únicamente cambia `sports.jar`.
+
+## Ajuste administrativo de promociones — 9 de noviembre de 2026
+
+- En Clientes y profesores → Promoción, un administrador puede registrar entre cero y la meta de partidos del ciclo actual, con motivo obligatorio. La meta completa deja el beneficio disponible para el siguiente partido finalizado. El ajuste reinicia el plazo entre partidos, elimina prórrogas anteriores y conserva el estado activo/pausado.
+- POST `/clients/{id}/loyalty/progress`: transacción y bloqueo por cliente, aislamiento por negocio, control de versión y movimiento `PROGRESS_ADJUSTED` con actor y motivo en el historial existente. No genera reservas ni cambia precios históricos; no requiere migraciones.
+- Calendario, pendientes, operación y formulario resaltan los descuentos con estrella, amarillo y texto. Las reservas abiertas muestran disponibilidad provisional; las finalizadas conservan el descuento y valor históricos.
+- Pasaron 82 pruebas Kotlin (27 ventas, 55 deportivas), 11 pruebas frontend, compilación Angular y JAR conjunto. Chrome con API simulada comprobó marca de promoción, valor cero y formulario móvil sin desbordamiento; Chrome con PostgreSQL local comprobó creación de cliente, configuración, ajuste a cinco partidos, historial y persistencia tras recargar.
+- Comparación del JAR: las 229 entradas de clases/configuración de ventas son idénticas al JAR versionado. No se ejecutaron migraciones ni escrituras en producción.
+- Servidor de prueba disponible en `http://localhost:5002/sports/index.html`, exclusivamente contra `127.0.0.1:55432/sports_local`. JAR preparado en `/private/tmp/creativecode-sports-package/libs/creativecode-1.0.jar`. Publicación autorizada por el usuario; seguimiento en PRODUCTION_RELEASE.md.

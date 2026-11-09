@@ -70,4 +70,26 @@ class LoyaltyServiceTest {
         loyalty().configure(actor,client.id,LoyaltyChange(disabled.policy.copy(active=true),disabled.version))
         finish(booking().copy(clientId=null));finish(booking().copy(kind=Kind.CLASS));assertEquals(0,store.loyaltyState(tenant,client.id)!!.played)
     }
+    @Test fun `admin imports progress and next reward retains historical prices`() {
+        configure(50);val historical=finish();val version=store.loyaltyState(tenant,client.id)!!.version
+        val adjusted=loyalty().progress(actor,client.id,LoyaltyProgress(5,"Partidos anteriores",version))
+        assertTrue(adjusted.state.rewardReady);assertEquals(5,adjusted.effectivePlayed)
+        assertEquals(BigDecimal("50000"),finish().finalPrice)
+        assertEquals(BigDecimal("100000"),store.rows[historical.id]!!.second.finalPrice)
+        assertEquals(1,store.ledger.count{it.second.type=="PROGRESS_ADJUSTED"})
+        error("STALE_VERSION"){loyalty().progress(actor,client.id,LoyaltyProgress(5,"Reintento",version))}
+    }
+    @Test fun `progress adjustment validates role limits and resets expired reference`() {
+        configure();finish()
+        val v=store.loyaltyState(tenant,client.id)!!.version
+        error("FORBIDDEN"){loyalty().progress(actor.copy(role=Role.EMPLOYEE),client.id,LoyaltyProgress(3,"Anterior",v))}
+        error("INVALID_PROGRESS"){loyalty().progress(actor,client.id,LoyaltyProgress(6,"Anterior",v))}
+        error("INVALID_PROGRESS"){loyalty().progress(actor,client.id,LoyaltyProgress(3," ",v))}
+        val later=now.plusSeconds(30*86400L)
+        val adjusted=loyalty(later).progress(actor,client.id,LoyaltyProgress(3,"Importación",v))
+        assertFalse(adjusted.expired);assertEquals(3,adjusted.effectivePlayed);assertEquals(later,adjusted.state.lastPlayedAt)
+        val reset=loyalty(later).progress(actor,client.id,LoyaltyProgress(0,"Corrección",adjusted.state.version))
+        assertFalse(reset.state.rewardReady);assertNull(reset.state.lastPlayedAt)
+    }
+
 }

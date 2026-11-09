@@ -1,3 +1,12 @@
+## Promociones: avance anterior y descuento visible — 9 noviembre 2026
+
+Publicación autorizada por el usuario. Permite al administrador ajustar el avance del ciclo con motivo e historial; resalta los descuentos en calendario, pendientes, operación y reserva. Conserva los precios históricos.
+
+- Sin migraciones ni modificaciones de datos productivos para esta publicación.
+- Validación: 82 pruebas Kotlin, 11 frontend y pruebas Chrome con datos simulados y PostgreSQL local. Las 229 entradas de clases/configuración de ventas permanecen idénticas.
+- JAR anterior: `.local/sports-release/pre-loyalty-progress-20261109.jar`. Reversión de código mediante ese JAR, conservando los datos.
+- Despliegue automático por GitHub/master. Verificación del hash público y lecturas de ventas, promociones y caja mediante `scripts/sports/verify-finance-public.py`.
+
 # Actualización de saldos administrativos — 8 noviembre 2026
 
 - Publicación de código únicamente: sin migraciones ni escrituras para transformar datos de producción.

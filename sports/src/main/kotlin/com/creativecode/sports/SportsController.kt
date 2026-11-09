@@ -51,6 +51,7 @@ class SportsController(private val store: PostgresSportsStore, private val servi
     @GetMapping("/clients/{id}/history") fun history(r: HttpServletRequest,@PathVariable id: UUID) = store.history(actor(r).tenantId,id)
     @GetMapping("/loyalty") fun loyalty(r: HttpServletRequest) = LoyaltyService(store).all(actor(r))
     @PutMapping("/clients/{id}/loyalty") fun loyalty(r: HttpServletRequest,@PathVariable id: UUID,@RequestBody input: LoyaltyChange) = LoyaltyService(store).configure(actor(r),id,input)
+    @PostMapping("/clients/{id}/loyalty/progress") fun loyaltyProgress(r: HttpServletRequest,@PathVariable id: UUID,@RequestBody input: LoyaltyProgress) = LoyaltyService(store).progress(actor(r),id,input)
     @PostMapping("/clients/{id}/loyalty/exception") fun loyaltyException(r: HttpServletRequest,@PathVariable id: UUID,@RequestBody input: LoyaltyException) = LoyaltyService(store).exception(actor(r),id,input)
     @GetMapping("/clients/{id}/loyalty/history") fun loyaltyHistory(r: HttpServletRequest,@PathVariable id: UUID) = store.loyaltyHistory(actor(r).tenantId,id)
     @GetMapping("/pricing-rules") fun prices(r: HttpServletRequest) = store.pricing(actor(r).tenantId)
