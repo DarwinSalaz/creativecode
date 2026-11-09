@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Verify the deployed artifact and read-only business APIs. No financial test records."""
+from decimal import Decimal
 import argparse,datetime,hashlib,json,pathlib,re,time,urllib.request,urllib.error,zipfile
 ROOT=pathlib.Path(__file__).resolve().parents[2];OUT=ROOT/'.local/sports-release'
 BASE='https://creative-code-darwinsalaz.koyeb.app'
@@ -32,6 +33,13 @@ try:
  status,body=request('/api/sports/v1/finance',token=token);overview=json.loads(body)
  assert overview['cashBase']>=0 and isinstance(overview['accounts'],list)
  checks['financeOverview']=status
+ if overview['accounts']:
+  selected=next((b for b in overview['accounts'] if b['account']['kind']=='CASH'),overview['accounts'][0])
+  code,raw=request('/api/sports/v1/finance/accounts/'+selected['account']['id']+'/statement?month='+overview['today'][:7],token=token)
+  statement=json.loads(raw)
+  assert Decimal(str(statement['opening']))+Decimal(str(statement['incoming']))-Decimal(str(statement['outgoing']))==Decimal(str(statement['closing']))
+  assert 'movements' in statement and all('sourceDays' in m for m in statement['movements'])
+  checks['financeAccountStatement']=code
  checks['financeMonth']=request('/api/sports/v1/finance/report?month='+overview['today'][:7],token=token)[0]
  checks['sportsCourts']=request('/api/sports/v1/courts',token=token)[0]
 finally:request('/api/sports/v1/auth/logout',{},token)

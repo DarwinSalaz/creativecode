@@ -84,3 +84,11 @@ Editar carga una copia de nombre, teléfono y notas conservando el ID. El guarda
 - V005 ensayada sobre una rama de producción; JAR conjunto ejecutado con Java 17 y el rol deportivo real. Pasaron autenticación, cierre mixto, reintento idempotente, gasto, entrega, faltante, saldos y reporte mensual; ventas respondió correctamente.
 - V005 aplicada en producción con verificación transaccional de filas preexistentes y huella de esquema/permisos de ventas sin cambios. Sin registros financieros ficticios en producción.
 - Verificación pública reproducible con `scripts/sports/verify-finance-public.py`; registro privado de resultados en `.local/sports-release/finance-public-verified.json`.
+
+## Saldos administrativos y extracto — 8 noviembre 2026
+
+- 80 pruebas Kotlin pasan: 27 del backend existente y 53 deportivas. Casos nuevos: cierre administrativo sin entrega obligatoria, traslado opcional de dinero recibido sin cierres propios, saldo inicial y final del extracto, cierres del mes anterior y aislamiento por negocio.
+- Integración local PostgreSQL/API: consulta con asociaciones históricas, recepción con faltante, saldo tras gastos/ajustes, traslado completo entre administradores y reintento idempotente. Fotografías mensuales cerradas y datos locales de ventas conservados.
+- Esta entrega no incorpora ni ejecuta migraciones. El extracto consulta `finance_entries`, `finance_days` y `finance_handover_days` existentes.
+- Navegador local: flujo completo de efectivo/transferencias/gastos/recepción conservado. Vista administrativa sin entrega obligatoria, consulta de cierres del mes anterior, cambio de mes y diseño sin desbordamientos a 320/390/760 px. Capturas `finance-statement-desktop.png` y `finance-statement-mobile.png`.
+- Comparación de artefactos antes de publicar: todas las clases `com/portafolio` y `application.properties` idénticas al JAR productivo anterior; entre las librerías únicamente cambia `sports.jar`.

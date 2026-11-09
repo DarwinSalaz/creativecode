@@ -7,8 +7,10 @@ Implementación del módulo `sports.finance`. Interfaz: **Caja y cierres**. Usa 
 1. El administrador registra cuentas bancarias y su titular: negocio, empleado o administrador. La base inicial es 150.000 COP y se puede configurar para futuros cierres.
 2. Quien realiza el cierre registra fecha, ingresos en efectivo y transferencias por cuenta receptora. Hay una sola caja y un único cierre diario por negocio. Se puede registrar un día sin ingresos.
 3. **El efectivo del cierre es el ingreso bruto del día:** excluye la base y dinero retenido de otros días; incluye lo que posteriormente se registra como gasto. Si se calcula desde el dinero físico restante, se deben sumar los gastos del día pagados con ese efectivo para reconstruir el ingreso. No existe conciliación automática con reservas, pues también hay tienda.
-4. El efectivo se asigna a quien registra el cierre. Las transferencias se asignan directamente a la cuenta seleccionada. El efectivo puede permanecer varios días con el empleado.
+4. El efectivo se asigna a quien registra el cierre. Para el administrador se muestra como **Efectivo a tu cargo** y se acumula para el cuadre mensual, sin obligación de entregarlo. Las transferencias se asignan directamente a la cuenta seleccionada. El efectivo puede permanecer varios días con el empleado.
 5. En «Dinero y entregas» el empleado selecciona al administrador y solicita entregar **todo su saldo de efectivo**, descontados los gastos ya registrados. Se agrupan todos sus cierres todavía sin entrega. El dinero sigue bajo su responsabilidad hasta la aceptación.
+El administrador puede iniciar un **traslado opcional** de su saldo completo a otro administrador, incluso si el dinero proviene exclusivamente de entregas recibidas y no tiene cierres propios. El receptor debe aceptar; no se mueve dinero al abrir la pantalla ni por terminar el mes.
+
 6. Mientras existe una solicitud pendiente, no se pueden registrar gastos ni ajustes sobre ese efectivo. Sí se pueden ingresar nuevos cierres: estos quedan para una siguiente entrega.
 7. Solo el administrador designado puede aceptar. Si recibe menos, debe explicar la diferencia; se registra como faltante histórico atribuible al efectivo del remitente. Se descuenta la totalidad declarada del remitente, se acredita lo realmente recibido al administrador y no queda una deuda abierta por el faltante. No se permite declarar más de lo esperado.
 8. Los gastos requieren fecha, cuenta, importe y concepto. El comprobante PDF/PNG/JPEG de hasta 2 MB es opcional. Se descuenta del saldo elegido, sin usar la base. Los empleados pueden gastar de sus cuentas y de cuentas del negocio; los administradores pueden registrar gastos de cualquier saldo del negocio. Se exige saldo disponible, incluyendo el efecto sobre movimientos posteriores si el gasto tiene fecha anterior.
@@ -17,6 +19,16 @@ Implementación del módulo `sports.finance`. Interfaz: **Caja y cierres**. Usa 
 11. Después del cierre mensual, las correcciones requieren un ajuste de administrador en una fecha abierta, importe positivo/negativo y justificación vinculada al mes cerrado. La fotografía original no cambia. Se pueden aceptar en el mes actual entregas de cierres del mes anterior.
 
 Los cierres diarios y movimientos guardados no se editan ni eliminan. Revisar importes antes de confirmar. La versión inicial no incluye anulación de entregas pendientes, traspasos bancarios entre cuentas ni exportación contable. Si un receptor se desactiva con una entrega pendiente, un administrador debe reactivarlo para que pueda aceptarla.
+
+## Saldos y movimientos — actualización 8 noviembre 2026
+
+El administrador entra a «Mi dinero y movimientos» al abrir Caja y cierres. «Mis saldos» muestra su efectivo y sus cuentas; «Todos los responsables y cuentas» permite revisar los demás saldos para el cuadre.
+
+Seleccionar una cuenta muestra un extracto por mes: saldo inicial, entradas, salidas y saldo al final del período. Cada movimiento incluye fecha, responsable, concepto, importe firmado y saldo posterior; conserva las notas y acceso a comprobantes. Las recepciones de efectivo muestran el remitente, lo declarado/recibido y los cierres asociados con sus fechas originales, aunque correspondan a un mes anterior. Los importes de dichos cierres son los ingresos originales antes de gastos/faltantes, no una distribución inventada del efectivo recibido.
+
+Los traslados de saldo acumulado sin cierres directamente vinculados se identifican como tales. No se reconstruyen asociaciones que no quedaron registradas. El extracto es una consulta del libro existente; no reescribe movimientos, cierres ni fotografías mensuales.
+
+Esta actualización no requiere migración, semillas ni modificaciones de datos productivos. Conserva la entrega obligatoria del flujo de empleados y los bloqueos de las entregas realmente solicitadas.
 
 ## Aislamiento y persistencia
 
@@ -36,6 +48,7 @@ Prefijo habitual `/api/sports/v1/finance`, bajo autenticación deportiva. Todos 
 | Método y ruta | Datos adicionales / resultado |
 |---|---|
 | GET `/` | fecha del negocio, base, personas sin credenciales, cuentas/saldos, cierres del actor pendientes de agrupación, entregas |
+| GET `/accounts/{id}/statement?month=AAAA-MM` | extracto de la cuenta del mismo negocio, saldos y cierres originales; solo lectura |
 | GET `/report?month=AAAA-MM` | informe abierto o fotografía cerrada |
 | POST `/accounts` | `name`, `ownerId` opcional (null = negocio); administrador |
 | POST `/base` | `amount`; administrador |

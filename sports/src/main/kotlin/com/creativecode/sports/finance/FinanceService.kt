@@ -40,16 +40,16 @@ class FinanceService(private val store:FinanceStore,private val json:ObjectMappe
   store.saveDay(a.tenantId,day)
   if(input.cash>zero)store.append(a.tenantId,FinanceEntry(documentId=input.id,accountId=cash(a,a.id).id,day=input.day,kind="INCOME",amount=input.cash,actorId=a.id,note=input.note))
   input.transfers.forEach{store.append(a.tenantId,FinanceEntry(documentId=input.id,accountId=it.accountId,day=input.day,kind="INCOME",amount=it.amount,actorId=a.id,note=input.note))}
-  "Cierre diario registrado. El efectivo sigue a tu cargo hasta que el administrador acepte la entrega."
+  if(a.role==Role.ADMIN)"Cierre diario registrado. El efectivo se suma a tu saldo para el cuadre mensual; no requiere entrega." else "Cierre diario registrado. El efectivo sigue a tu cargo hasta que el administrador acepte la entrega."
  }
  fun handover(a:Actor,input:HandoverInput)=command(a,input.id,"HANDOVER",input){
   val day=today(a).toString();openDay(a,day)
   checkSports(input.receiverId!=a.id&&person(a,input.receiverId).role==Role.ADMIN,"INVALID_RECEIVER","Selecciona otro administrador como receptor")
   checkSports(store.handovers(a.tenantId).none{it.senderId==a.id&&it.status=="PENDING"},"HANDOVER_PENDING","Ya tienes una entrega pendiente",409)
-  val days=store.pendingDays(a.tenantId,a.id);checkSports(days.isNotEmpty(),"NO_PENDING_CASH","No tienes cierres con efectivo pendientes de entregar",409)
-  val expected=balance(a,cash(a,a.id).id);checkSports(expected>=zero,"INVALID_BALANCE","Revisa el saldo antes de entregar",409)
+  val days=store.pendingDays(a.tenantId,a.id);checkSports(a.role==Role.ADMIN||days.isNotEmpty(),"NO_PENDING_CASH","No tienes cierres con efectivo pendientes de entregar",409)
+  val expected=balance(a,cash(a,a.id).id);checkSports(a.role!=Role.ADMIN||expected>zero,"NO_AVAILABLE_CASH","No tienes efectivo disponible para trasladar",409);checkSports(expected>=zero,"INVALID_BALANCE","Revisa el saldo antes de entregar",409)
   store.saveHandover(a.tenantId,FinanceHandover(input.id,a.id,input.receiverId,expected,requestedDay=day),days.map{it.id})
-  "Entrega completa solicitada; el dinero permanece a tu cargo hasta su aceptación"
+  if(a.role==Role.ADMIN)"Traslado solicitado; el dinero permanece a tu cargo hasta que el otro administrador lo acepte" else "Entrega completa solicitada; el dinero permanece a tu cargo hasta su aceptación"
  }
  fun accept(a:Actor,handoverId:UUID,input:AcceptInput)=command(a,input.id,"ACCEPT:$handoverId",input){
   a.admin();val day=today(a).toString();openDay(a,day)
@@ -84,6 +84,18 @@ class FinanceService(private val store:FinanceStore,private val json:ObjectMappe
   return FinanceReport(month,cash,transfer,expense,shortage,adjustments,cash+transfer-expense-shortage+adjustments,accounts.map{FinanceBalance(it,balances[it.id]?:zero)},store.days(a.tenantId,from,to),entries,store.handovers(a.tenantId).filter{it.requestedDay<=to&&(it.acceptedDay==null||it.acceptedDay>=from)}.map{if(it.acceptedDay!=null&&it.acceptedDay>to)it.copy(status="PENDING",received=null,acceptedDay=null,note=null) else it})
  }
  fun report(a:Actor,month:String):FinanceReport=store.transaction{store.lock(a.tenantId);store.month(a.tenantId,YearMonth.parse(month).toString())?:buildReport(a,month)}
+ /** Read-only projection of the existing ledger, including source closings from earlier months. */
+ fun statement(a:Actor,accountId:UUID,month:String):FinanceStatement=store.transaction {
+  store.lock(a.tenantId)
+  val acc=account(a,accountId);val m=YearMonth.parse(month)
+  val opening=store.balances(a.tenantId,m.atDay(1).minusDays(1).toString())[accountId]?:zero
+  val entries=store.entries(a.tenantId,m.atDay(1).toString(),m.atEndOfMonth().toString()).filter{it.accountId==accountId}.sortedBy{it.day}
+  val sources=store.documentDays(a.tenantId,entries.map{it.documentId}.toSet())
+  val handovers=store.handovers(a.tenantId).associateBy{it.id}
+  var running=opening
+  val movements=entries.map{e->running+=e.amount;FinanceMovement(e,running,sources[e.documentId]?:emptyList(),handovers[e.documentId])}
+  FinanceStatement(acc,m.toString(),opening,entries.filter{it.amount>zero}.fold(zero){s,e->s+e.amount},entries.filter{it.amount<zero}.fold(zero){s,e->s-e.amount},running,movements.reversed())
+ }
  fun closeMonth(a:Actor,input:MonthInput)=command(a,input.id,"MONTH",input){
   a.admin();note(input.note,true);val month=YearMonth.parse(input.month)
   checkSports(month<YearMonth.from(today(a)),"MONTH_IN_PROGRESS","Solo puedes cerrar meses que ya terminaron")

@@ -15,6 +15,8 @@ data class FinanceResult(val id: UUID,val message: String)
 data class FinanceCommand(val actorId: UUID,val payload: String,val result: FinanceResult)
 data class FinanceBalance(val account: FinanceAccount,val balance: BigDecimal)
 data class FinanceReport(val month: String,val incomeCash: BigDecimal,val incomeTransfer: BigDecimal,val expenses: BigDecimal,val shortages: BigDecimal,val adjustments: BigDecimal,val result: BigDecimal,val balances: List<FinanceBalance>,val days: List<FinanceDay>,val entries: List<FinanceEntry>,val handovers: List<FinanceHandover>,val closed: Boolean=false,val closedBy: UUID?=null,val closedAt: Instant?=null,val note: String?=null)
+data class FinanceMovement(val entry:FinanceEntry,val balanceAfter:BigDecimal,val sourceDays:List<FinanceDay>,val handover:FinanceHandover?=null)
+data class FinanceStatement(val account:FinanceAccount,val month:String,val opening:BigDecimal,val incoming:BigDecimal,val outgoing:BigDecimal,val closing:BigDecimal,val movements:List<FinanceMovement>)
 data class FinanceReceipt(val id: UUID,val actorId: UUID,val name: String,val contentType: String,val content: ByteArray)
 data class DayInput(val id: UUID,val day: String,val cash: BigDecimal,val transfers: List<FinanceTransfer> = emptyList(),val note: String?=null)
 data class BankInput(val id: UUID,val name: String,val ownerId: UUID?=null)
@@ -36,6 +38,7 @@ interface FinanceStore {
  fun base(tenant:UUID):BigDecimal
  fun saveBase(tenant:UUID,amount:BigDecimal)
  fun days(tenant:UUID,from:String,to:String):List<FinanceDay>
+ fun documentDays(tenant:UUID,documents:Set<UUID>):Map<UUID,List<FinanceDay>>
  fun pendingDays(tenant:UUID,actor:UUID):List<FinanceDay>
  fun saveDay(tenant:UUID,day:FinanceDay)
  fun entries(tenant:UUID,from:String,to:String):List<FinanceEntry>

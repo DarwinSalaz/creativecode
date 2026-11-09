@@ -88,6 +88,22 @@ assert len(checked('/finance/report?month='+current,token=a)['days'])==1
 # Cross-tenant IDs never resolve to accounts or receipts.
 checked('/finance/days',closing(now+dt.timedelta(days=1),1),e,400)
 checked('/finance/expenses',{'id':uid(),'day':now.isoformat(),'accountId':uid(),'amount':1,'note':'Cuenta ajena'},a,404)
+# Statement traces an accepted delivery back to previous-month daily closings.
+statement=checked('/finance/accounts/'+adminCash+'/statement?month='+current,token=a)
+receipt=next(m for m in statement['movements'] if m['entry']['kind']=='HANDOVER_IN')
+assert [d['day'] for d in receipt['sourceDays']]==[(prev-dt.timedelta(days=1)).isoformat(),prev.isoformat()]
+assert receipt['handover']['senderId']==employee and receipt['handover']['received']==440000
+assert (statement['opening'],statement['incoming'],statement['outgoing'],statement['closing'])==(0,440000,55000,385000)
+assert statement['movements'][0]['balanceAfter']==statement['closing']
+assert checked('/finance/accounts/'+cash+'/statement?month='+current,token=e)['opening']==450000
+assert snapshot==checked('/finance/report?month='+month,token=a)
+# An admin may optionally transfer money received from others without own daily closings.
+assert not checked('/finance',token=a)['pendingDays']
+transfer={'id':uid(),'receiverId':other}
+checked('/finance/handovers',transfer,a);checked('/finance/handovers',transfer,a)
+checked('/finance/handovers/'+transfer['id']+'/accept',{'id':uid(),'received':385000,'note':'Traslado entre administradores'},o)
+assert checked('/finance/accounts/'+adminCash+'/statement?month='+current,token=a)['closing']==0
+checked('/finance/accounts/'+uid()+'/statement?month='+current,token=a,status=404)
 # Actual database grants and triggers prevent history rewrites; sales role has no finance access.
 sql('UPDATE sports.finance_entries SET amount=0 WHERE tenant_id='+q(tenant),app=True,ok=False)
 sql('BEGIN; UPDATE sports.finance_days SET cash=0 WHERE tenant_id='+q(tenant)+'; ROLLBACK;',ok=False)

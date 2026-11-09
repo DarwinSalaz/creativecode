@@ -12,9 +12,9 @@ private data class State(
  val people:MutableList<FinancePerson> = mutableListOf(),val accounts:MutableList<FinanceAccount> = mutableListOf(),
  var base:BigDecimal=BigDecimal("150000"),val days:MutableList<FinanceDay> = mutableListOf(),
  val entries:MutableList<FinanceEntry> = mutableListOf(),val handovers:MutableList<FinanceHandover> = mutableListOf(),
- val grouped:MutableSet<UUID> = mutableSetOf(),val months:MutableMap<String,FinanceReport> = mutableMapOf(),
+ val sources:MutableMap<UUID,List<UUID>> = mutableMapOf(),val grouped:MutableSet<UUID> = mutableSetOf(),val months:MutableMap<String,FinanceReport> = mutableMapOf(),
  val commands:MutableMap<UUID,FinanceCommand> = mutableMapOf(),val receipts:MutableMap<UUID,FinanceReceipt> = mutableMapOf()
-){fun snapshot()=copy(people=people.toMutableList(),accounts=accounts.toMutableList(),days=days.toMutableList(),entries=entries.toMutableList(),handovers=handovers.toMutableList(),grouped=grouped.toMutableSet(),months=months.toMutableMap(),commands=commands.toMutableMap(),receipts=receipts.toMutableMap())}
+){fun snapshot()=copy(people=people.toMutableList(),accounts=accounts.toMutableList(),days=days.toMutableList(),entries=entries.toMutableList(),handovers=handovers.toMutableList(),sources=sources.toMutableMap(),grouped=grouped.toMutableSet(),months=months.toMutableMap(),commands=commands.toMutableMap(),receipts=receipts.toMutableMap())}
 private class MemoryFinanceStore:FinanceStore {
  var states=mutableMapOf<UUID,State>()
  fun state(t:UUID)=states.getOrPut(t){State()}
@@ -27,13 +27,14 @@ private class MemoryFinanceStore:FinanceStore {
  override fun base(tenant:UUID)=state(tenant).base
  override fun saveBase(tenant:UUID,amount:BigDecimal){state(tenant).base=amount}
  override fun days(tenant:UUID,from:String,to:String)=state(tenant).days.filter{it.day>=from&&it.day<=to}
+ override fun documentDays(tenant:UUID,documents:Set<UUID>):Map<UUID,List<FinanceDay>> = documents.associateWith { doc->state(tenant).days.filter{it.id==doc||it.id in (state(tenant).sources[doc]?:emptyList())}.sortedBy{it.day} }
  override fun pendingDays(tenant:UUID,actor:UUID)=state(tenant).days.filter{it.actorId==actor&&it.cash>BigDecimal.ZERO&&it.id !in state(tenant).grouped}
  override fun saveDay(tenant:UUID,day:FinanceDay){state(tenant).days.add(day)}
  override fun entries(tenant:UUID,from:String,to:String)=state(tenant).entries.filter{it.day>=from&&it.day<=to}
  override fun balances(tenant:UUID,until:String)=state(tenant).entries.filter{it.day<=until}.groupBy{it.accountId}.mapValues{it.value.fold(BigDecimal.ZERO){s,e->s+e.amount}}
  override fun append(tenant:UUID,entry:FinanceEntry){state(tenant).entries.add(entry)}
  override fun handovers(tenant:UUID)=state(tenant).handovers.toList()
- override fun saveHandover(tenant:UUID,value:FinanceHandover,dayIds:List<UUID>){state(tenant).handovers.add(value);state(tenant).grouped.addAll(dayIds)}
+ override fun saveHandover(tenant:UUID,value:FinanceHandover,dayIds:List<UUID>){state(tenant).handovers.add(value);state(tenant).grouped.addAll(dayIds);state(tenant).sources[value.id]=dayIds}
  override fun acceptHandover(tenant:UUID,value:FinanceHandover){val s=state(tenant);s.handovers[s.handovers.indexOfFirst{it.id==value.id}]=value}
  override fun latestClosedMonth(tenant:UUID)=state(tenant).months.keys.max()
  override fun month(tenant:UUID,month:String)=state(tenant).months[month]
@@ -70,4 +71,42 @@ class FinanceServiceTest {
  @Test fun `zero cash after expenses can be settled and new base is not retroactive`(){service.closeDay(employee,day(cash=100));service.base(admin,BaseInput(id(),n(200000)));service.expense(employee,ExpenseInput(id(),"2026-11-01",cash(),n(100),"Insumos"));val h=id();service.handover(employee,HandoverInput(h,admin.id));service.accept(admin,h,AcceptInput(id(),n(0)));assertEquals(n(150000),store.state(t).days.first().cashBase);assertEquals(n(200000),store.base(t));assertEquals(n(0),service.report(admin,"2026-11").result)}
  @Test fun `invalid transfer rolls back complete closing`(){val b=bank();error("INVALID_AMOUNT"){service.closeDay(employee,day().copy(transfers=listOf(FinanceTransfer(b,n(10)),FinanceTransfer(b,n(-1)))))};assertTrue(store.state(t).days.isEmpty());assertTrue(store.state(t).entries.isEmpty())}
  @Test fun `receipt type size and tenant are validated`(){error("INVALID_RECEIPT"){service.upload(employee,"fake.pdf","application/pdf","hello".toByteArray())};val id=service.upload(employee,"receipt.pdf","application/pdf","%PDF-1.4".toByteArray());assertEquals(employee.id,service.receipt(admin,id).actorId);error("NOT_FOUND"){service.receipt(employee.copy(tenantId=id()),id)}}
+ @Test fun `administrator closure accumulates cash without an obligatory delivery`() {
+  val result=service.closeDay(admin,day())
+  assertTrue(result.message.contains("no requiere entrega"));assertEquals(n(500000),balance(cash(admin)))
+  assertTrue(store.handovers(t).isEmpty())
+ }
+ @Test fun `administrator can optionally transfer received cash without own daily closings`() {
+  service.closeDay(employee,day());val h=id();service.handover(employee,HandoverInput(h,admin.id));service.accept(admin,h,AcceptInput(id(),n(500000)))
+  assertTrue(store.pendingDays(t,admin.id).isEmpty())
+  val transfer=HandoverInput(id(),other.id);service.handover(admin,transfer);service.handover(admin,transfer)
+  assertEquals(n(500000),balance(cash(admin)))
+  service.accept(other,transfer.id,AcceptInput(id(),n(500000)))
+  assertEquals(n(0),balance(cash(admin)));assertEquals(n(500000),balance(cash(other)))
+  error("NO_AVAILABLE_CASH"){service.handover(admin,HandoverInput(id(),other.id))}
+ }
+ @Test fun `statement relates received cash to original closings across months without changing history`() {
+  service.closeDay(employee,day("2026-10-30",300000));service.closeDay(employee,day("2026-10-31",200000))
+  service.closeMonth(admin,MonthInput(id(),"2026-10","Revisado"));val closed=service.report(admin,"2026-10")
+  val h=id();service.handover(employee,HandoverInput(h,admin.id));service.accept(admin,h,AcceptInput(id(),n(490000),"Faltante"))
+  service.expense(admin,ExpenseInput(id(),"2026-11-05",cash(admin),n(50000),"Insumos"))
+  val stateBefore=store.state(t).snapshot();val statement=service.statement(admin,cash(admin),"2026-11")
+  assertEquals(n(0),statement.opening);assertEquals(n(490000),statement.incoming);assertEquals(n(50000),statement.outgoing);assertEquals(n(440000),statement.closing)
+  val receipt=statement.movements.first{it.entry.kind=="HANDOVER_IN"}
+  assertEquals(listOf("2026-10-30","2026-10-31"),receipt.sourceDays.map{it.day});assertEquals(employee.id,receipt.handover!!.senderId)
+  assertEquals(n(440000),statement.movements.first().balanceAfter)
+  assertEquals(stateBefore,store.state(t));assertEquals(closed,service.report(admin,"2026-10"))
+  val old=service.statement(employee,cash(),"2026-10");assertEquals(n(500000),old.closing)
+  assertEquals(n(500000),service.statement(employee,cash(),"2026-11").opening)
+  error("ACCOUNT_NOT_FOUND"){service.statement(admin.copy(tenantId=id()),cash(admin),"2026-11")}
+ }
+ @Test fun `statement identifies direct closing for bank income and preserves opening on empty month`() {
+  val b=bank(admin.id);val closing=day("2026-10-31").copy(transfers=listOf(FinanceTransfer(b,n(100000))))
+  service.closeDay(admin,closing)
+  val october=service.statement(admin,b,"2026-10")
+  assertEquals(closing.id,october.movements.single().sourceDays.single().id)
+  val november=service.statement(admin,b,"2026-11")
+  assertEquals(n(100000),november.opening);assertEquals(n(100000),november.closing);assertTrue(november.movements.isEmpty())
+ }
+
 }

@@ -23,6 +23,17 @@ class PostgresFinanceStore(private val sports:PostgresSportsStore,private val js
  override fun saveBase(tenant:UUID,amount:BigDecimal){jdbc.update("INSERT INTO sports.finance_settings(tenant_id,cash_base) VALUES(?,?) ON CONFLICT(tenant_id) DO UPDATE SET cash_base=excluded.cash_base",tenant,amount)}
  private val dayMapper=RowMapper { r:ResultSet,_:Int->FinanceDay(id(r,"id"),r.getString("day"),id(r,"actor_id"),r.getBigDecimal("cash"),r.getBigDecimal("cash_base"),json.readValue(r.getString("transfers"),Array<FinanceTransfer>::class.java).toList(),r.getString("note")) }
  override fun days(tenant:UUID,from:String,to:String)=jdbc.query("SELECT * FROM sports.finance_days WHERE tenant_id=? AND day BETWEEN ? AND ? ORDER BY day DESC",dayMapper,tenant,date(from),date(to))
+ override fun documentDays(tenant:UUID,documents:Set<UUID>):Map<UUID,List<FinanceDay>> {
+  if(documents.isEmpty())return emptyMap()
+  val marks=documents.joinToString(","){"?"}
+  val args=listOf(tenant)+documents.toList()+listOf(tenant)+documents.toList()
+  return jdbc.query("""SELECT d.*,d.id AS document_id FROM sports.finance_days d WHERE d.tenant_id=? AND d.id IN ($marks)
+   UNION ALL SELECT d.*,h.handover_id AS document_id FROM sports.finance_handover_days h
+   JOIN sports.finance_days d ON d.tenant_id=h.tenant_id AND d.id=h.day_id
+   WHERE h.tenant_id=? AND h.handover_id IN ($marks) ORDER BY day,id""",
+   RowMapper { r,i->id(r,"document_id") to dayMapper.mapRow(r,i)!! },*args.toTypedArray())
+   .groupBy({it.first},{it.second})
+ }
  override fun pendingDays(tenant:UUID,actor:UUID)=jdbc.query("SELECT d.* FROM sports.finance_days d WHERE d.tenant_id=? AND d.actor_id=? AND d.cash>0 AND NOT EXISTS(SELECT 1 FROM sports.finance_handover_days h WHERE h.tenant_id=d.tenant_id AND h.day_id=d.id) ORDER BY d.day",dayMapper,tenant,actor)
  override fun saveDay(tenant:UUID,day:FinanceDay){jdbc.update("INSERT INTO sports.finance_days(tenant_id,id,day,actor_id,cash,cash_base,transfers,note) VALUES(?,?,?,?,?,?,?::jsonb,?)",tenant,day.id,date(day.day),day.actorId,day.cash,day.cashBase,json.writeValueAsString(day.transfers),day.note)}
  private val entryMapper=RowMapper { r:ResultSet,_:Int->FinanceEntry(id(r,"id"),id(r,"document_id"),id(r,"account_id"),r.getString("day"),r.getString("kind"),r.getBigDecimal("amount"),id(r,"actor_id"),r.getString("note"),r.getObject("receipt_id") as UUID?,r.getString("relates_to_month")) }

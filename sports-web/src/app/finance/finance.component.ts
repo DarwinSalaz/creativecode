@@ -7,10 +7,13 @@ interface Account {id:string;name:string;kind:string;ownerId?:string}
 interface Balance {account:Account;balance:number}
 interface Person {id:string;name:string;role:string;active:boolean}
 interface Handover {id:string;senderId:string;receiverId:string;expected:number;received?:number;status:string;requestedDay:string;acceptedDay?:string;note?:string}
+interface Movement {entry:{id:string;day:string;kind:string;amount:number;actorId:string;note?:string;receiptId?:string;relatesToMonth?:string};balanceAfter:number;sourceDays:{id:string;day:string;actorId:string;cash:number}[];handover?:Handover}
+interface Statement {account:Account;month:string;opening:number;incoming:number;outgoing:number;closing:number;movements:Movement[]}
 interface Overview {today:string;cashBase:number;people:Person[];accounts:Balance[];pendingDays:any[];handovers:Handover[]}
 @Component({selector:'sports-finance',standalone:true,imports:[CommonModule,FormsModule],templateUrl:'./finance.component.html',styleUrls:['./finance.component.css']})
 export class FinanceComponent implements OnInit {
  @Input() actor!:Actor;
+ statement?:Statement; statementMonth=''; statementAccount=''; balanceScope='mine'; transferOpen=false;
  overview?:Overview; report:any; section='daily'; busy=false; error=''; notice=''; month=''; file?:File;
  day={day:'',cash:0,transfers:[] as {accountId:string;amount:number}[],note:''};
  expense={day:'',accountId:'',amount:0,note:'',receiptId:undefined as string|undefined};
@@ -18,9 +21,9 @@ export class FinanceComponent implements OnInit {
  adjustment={day:'',accountId:'',amount:0,note:'',relatesToMonth:''};
  private commands=new Map<string,{payload:string;id:string}>();
  constructor(public api:ApiService){}
- ngOnInit(){void this.run(async()=>{await this.load();await this.loadReport();});}
+ ngOnInit(){if(this.actor.role==='ADMIN')this.section='custody';void this.run(async()=>{await this.load();await this.loadReport();});}
  async run(fn:()=>Promise<void>){if(this.busy)return;this.busy=true;this.error='';this.notice='';try{await fn();}catch(e:any){this.error=e.message||'No pudimos completar la operación';}finally{this.busy=false;}}
- async load(){this.overview=await this.api.request<Overview>('/finance');this.base=this.overview.cashBase;for(const f of [this.day,this.expense,this.adjustment])if(!f.day)f.day=this.overview.today;if(!this.month)this.month=this.overview.today.slice(0,7);}
+ async load(){this.overview=await this.api.request<Overview>('/finance');this.base=this.overview.cashBase;for(const f of [this.day,this.expense,this.adjustment])if(!f.day)f.day=this.overview.today;if(!this.month)this.month=this.overview.today.slice(0,7);if(!this.statementMonth)this.statementMonth=this.overview.today.slice(0,7);await this.loadStatement();}
  async loadReport(){this.report=undefined;this.report=await this.api.request('/finance/report?month='+encodeURIComponent(this.month));this.monthConfirmed=false;}
  refresh(){void this.run(async()=>{await this.load();await this.loadReport();});}
  async post(path:string,body:any){
@@ -37,7 +40,7 @@ export class FinanceComponent implements OnInit {
  addTransfer(){this.day.transfers.push({accountId:this.banks()[0]?.account.id||'',amount:0});}
  saveBank(){void this.run(async()=>{await this.post('/accounts',{name:this.bank.name,ownerId:this.bank.ownerId||null});this.bank={name:'',ownerId:''};await this.load();});}
  saveBase(){void this.run(async()=>{await this.post('/base',{amount:this.base});await this.load();});}
- deliver(){void this.run(async()=>{await this.post('/handovers',{receiverId:this.receiverId});await this.load();await this.loadReport();});}
+ deliver(){void this.run(async()=>{await this.post('/handovers',{receiverId:this.receiverId});this.transferOpen=false;await this.load();await this.loadReport();});}
  openAcceptance(h:Handover){this.accepting=h;this.received=h.expected;this.acceptNote='';}
  accept(){if(!this.accepting)return;const id=this.accepting.id;void this.run(async()=>{await this.post('/handovers/'+id+'/accept',{received:this.received,note:this.acceptNote});this.accepting=undefined;await this.load();await this.loadReport();});}
  selectFile(event:Event){this.file=(event.target as HTMLInputElement).files?.[0];this.expense.receiptId=undefined;this.error='';if(this.file&&this.file.size>2097152){this.error='El comprobante debe pesar máximo 2 MB';this.file=undefined;(event.target as HTMLInputElement).value='';}}
@@ -46,6 +49,22 @@ export class FinanceComponent implements OnInit {
  download(id:string){void this.run(async()=>{const response=await fetch(this.api.base+'/finance/receipts/'+id,{headers:{Authorization:'Bearer '+this.api.token},credentials:'omit',cache:'no-store'});if(!response.ok)throw new Error('No se pudo descargar el comprobante');const blob=await response.blob();const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download='comprobante.'+(blob.type==='application/pdf'?'pdf':blob.type==='image/png'?'png':'jpg');link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);});}
  closeMonth(){if(!this.monthConfirmed)return;void this.run(async()=>{await this.post('/months',{month:this.month,note:this.monthNote});this.monthNote='';await this.loadReport();});}
  saveAdjustment(){void this.run(async()=>{await this.post('/adjustments',this.adjustment);this.adjustment={...this.adjustment,amount:0,note:''};await this.load();await this.loadReport();});}
+ visibleBalances(){return (this.overview?.accounts||[]).filter(b=>this.balanceScope==='all'||b.account.ownerId===this.actor.id).sort((a,b)=>Number(b.account.kind==='CASH')-Number(a.account.kind==='CASH'));}
+ async loadStatement(){
+  const visible=this.visibleBalances();if(!visible.some(b=>b.account.id===this.statementAccount))this.statementAccount=visible[0]?.account.id||'';
+  this.statement=undefined;if(!this.statementAccount)return;
+  this.statement=await this.api.request<Statement>('/finance/accounts/'+this.statementAccount+'/statement?month='+encodeURIComponent(this.statementMonth));
+ }
+ selectBalance(id:string){void this.run(async()=>{this.statementAccount=id;await this.loadStatement();});}
+ scope(value:string){void this.run(async()=>{this.balanceScope=value;await this.loadStatement();});}
+ openMyMoney(){this.section='custody';void this.run(async()=>{this.balanceScope='mine';this.statementAccount=this.overview?.accounts.find(b=>b.account.ownerId===this.actor.id&&b.account.kind==='CASH')?.account.id||'';await this.loadStatement();});}
+ dateLabel(day:string){return new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'));}
+ movementTitle(m:Movement){
+  if(m.entry.kind==='INCOME')return this.statement?.account.kind==='BANK'?'Transferencia registrada en cierre diario':'Ingreso de cierre diario';
+  if(m.entry.kind==='HANDOVER_IN')return 'Efectivo recibido de '+this.person(m.handover?.senderId);
+  if(m.entry.kind==='HANDOVER_OUT')return 'Efectivo trasladado a '+this.person(m.handover?.receiverId);
+  return this.label(m.entry.kind);
+ }
  person(id?:string){return id?this.overview?.people.find(p=>p.id===id)?.name||'Usuario':'Negocio';}
  account(id:string){return this.overview?.accounts.find(b=>b.account.id===id)?.account.name||'Cuenta';}
  banks(){return this.overview?.accounts.filter(b=>b.account.kind==='BANK')||[];}

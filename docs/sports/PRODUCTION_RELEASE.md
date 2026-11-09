@@ -1,3 +1,14 @@
+# Actualización de saldos administrativos — 8 noviembre 2026
+
+- Publicación de código únicamente: sin migraciones ni escrituras para transformar datos de producción.
+- Los administradores ven su efectivo a cargo y el traslado opcional. Los empleados conservan el proceso de entrega.
+- Nueva consulta autenticada `GET /api/sports/v1/finance/accounts/{id}/statement?month=AAAA-MM`: usa el libro y las asociaciones de cierres existentes; no modifica fotografías mensuales ni reescribe movimientos.
+- Traslado administrativo opcional habilitado para dinero recibido, aun sin cierres propios.
+- 80 pruebas Kotlin y pruebas locales de PostgreSQL y navegador aprobadas. Verificación pública mediante `verify-finance-public.py`, incluyendo el nuevo extracto y las rutas de ventas.
+- JAR previo conservado privadamente en `.local/sports-release/pre-finance-statement-20261108.jar`.
+
+---
+
 # Publicación de Caja y cierres — 5 noviembre 2026
 
 - Autorizada por el usuario. V005 aplicada en producción con nueve tablas `sports.finance_*`, sin datos ficticios.

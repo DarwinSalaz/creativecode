@@ -13,6 +13,7 @@ class FinanceController(private val service:FinanceService) {
  private fun actor(r:HttpServletRequest)=r.getAttribute("sports.actor") as Actor
  @GetMapping fun overview(r:HttpServletRequest)=service.overview(actor(r))
  @GetMapping("/report") fun report(r:HttpServletRequest,@RequestParam month:String)=service.report(actor(r),month)
+ @GetMapping("/accounts/{id}/statement") fun statement(r:HttpServletRequest,@PathVariable id:UUID,@RequestParam month:String)=service.statement(actor(r),id,month)
  @PostMapping("/days") fun day(r:HttpServletRequest,@RequestBody input:DayInput)=service.closeDay(actor(r),input)
  @PostMapping("/accounts") fun bank(r:HttpServletRequest,@RequestBody input:BankInput)=service.bank(actor(r),input)
  @PostMapping("/base") fun base(r:HttpServletRequest,@RequestBody input:BaseInput)=service.base(actor(r),input)
