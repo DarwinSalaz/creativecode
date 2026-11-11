@@ -13,7 +13,7 @@ interface Overview {today:string;cashBase:number;people:Person[];accounts:Balanc
 @Component({selector:'sports-finance',standalone:true,imports:[CommonModule,FormsModule],templateUrl:'./finance.component.html',styleUrls:['./finance.component.css']})
 export class FinanceComponent implements OnInit {
  @Input() actor!:Actor;
- statement?:Statement; statementMonth=''; statementAccount=''; balanceScope='mine'; transferOpen=false;
+ statement?:Statement; statementMonth=''; statementAccount=''; balanceScope='mine'; transferOpen=false; handoverMonth='';
  overview?:Overview; report:any; section='daily'; busy=false; error=''; notice=''; month=''; file?:File;
  day={day:'',cash:0,transfers:[] as {accountId:string;amount:number}[],note:''};
  expense={day:'',accountId:'',amount:0,note:'',receiptId:undefined as string|undefined};
@@ -59,6 +59,8 @@ export class FinanceComponent implements OnInit {
  scope(value:string){void this.run(async()=>{this.balanceScope=value;await this.loadStatement();});}
  openMyMoney(){this.section='custody';void this.run(async()=>{this.balanceScope='mine';this.statementAccount=this.overview?.accounts.find(b=>b.account.ownerId===this.actor.id&&b.account.kind==='CASH')?.account.id||'';await this.loadStatement();});}
  dateLabel(day:string){return new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'));}
+ handoverHistory(){return (this.overview?.handovers||[]).filter(h=>h.status==='ACCEPTED'&&(!this.handoverMonth||h.acceptedDay?.startsWith(this.handoverMonth))).sort((a,b)=>(b.acceptedDay||'').localeCompare(a.acceptedDay||'')||b.requestedDay.localeCompare(a.requestedDay));}
+ movementDescription(m:Movement){return ['EXPENSE','ADJUSTMENT'].includes(m.entry.kind)&&m.entry.note?m.entry.note:this.movementTitle(m);}
  movementTitle(m:Movement){
   if(m.entry.kind==='INCOME')return this.statement?.account.kind==='BANK'?'Transferencia registrada en cierre diario':'Ingreso de cierre diario';
   if(m.entry.kind==='HANDOVER_IN')return 'Efectivo recibido de '+this.person(m.handover?.senderId);

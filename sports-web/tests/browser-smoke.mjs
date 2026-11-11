@@ -20,7 +20,7 @@ await page.route('**/api/sports/v1/**',async route=>{
  else if(endpoint==='/pricing-rules'&&request.method()==='POST'){const p=request.postDataJSON();if(p.id){rates=rates.map(r=>r.id===p.id?p:r);}else rates.push({...p,id:crypto.randomUUID()});body=p;}
  else if(endpoint==='/pricing-rules')body=rates;
  else if(endpoint==='/loyalty')body=loyalty;
- else if(['/clients','/teachers','/pricing-rules','/users','/venues'].includes(endpoint))body=[];
+ else if(['/clients','/teachers','/pricing-rules','/users','/venues','/recurrence-rules'].includes(endpoint))body=[];
  else if(endpoint.endsWith('/finish')){const b=bookings.find(b=>endpoint.includes(b.id));assert.equal(request.postDataJSON().version,b.version);b.status='FINISHED';b.actualEndedAt=new Date().toISOString();b.version++;writes++;body=b;}
  else throw new Error('Unmocked endpoint: '+endpoint);
  await route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(body)});

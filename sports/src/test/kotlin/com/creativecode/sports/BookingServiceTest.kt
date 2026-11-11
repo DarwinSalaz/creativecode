@@ -189,7 +189,7 @@ internal class MemoryStore: SportsStore {
     override fun pricing(tenant: UUID)=prices.toList()
     override fun savePricing(tenant: UUID,value: Pricing) {}
     override fun audit(actor: Actor,id: UUID,action: String,reason: String?) { events.add(action) }
-    override fun recurrences(tenant: UUID)=rules.toList()
-    override fun saveRecurrence(tenant: UUID,value: Recurrence) { if(rules.none { it.id==value.id }) rules.add(value) }
+    override fun recurrences(tenant: UUID)=rules.filter { r -> courts(tenant).any { it.id==r.courtId } }
+    override fun saveRecurrence(tenant: UUID,value: Recurrence) { rules.removeAll { it.id==value.id }; rules.add(value) }
     override fun generated(tenant: UUID,recurrence: UUID,start: Instant)=rows.values.any { it.first==tenant && it.second.recurrenceId==recurrence && it.second.start==start }
 }

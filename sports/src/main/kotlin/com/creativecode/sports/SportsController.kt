@@ -37,7 +37,7 @@ class SportsController(private val store: PostgresSportsStore, private val servi
         val a=actor(r); val now=Instant.now(); val settings=store.settings(a.tenantId)
         val zone=java.time.ZoneId.of(settings.timezone); val date=now.atZone(zone).toLocalDate()
         val start=date.atStartOfDay(zone).toInstant(); val end=date.plusDays(2).atStartOfDay(zone).toInstant()
-        return mapOf("serverTime" to now,"settings" to settings,"courts" to store.courts(a.tenantId),"active" to store.active(a.tenantId),"reservations" to store.bookings(a.tenantId,start,end))
+        return mapOf("serverTime" to now,"settings" to settings,"courts" to store.courts(a.tenantId),"active" to store.active(a.tenantId),"reservations" to service.list(a,start,end))
     }
     @GetMapping("/clients") fun clients(r: HttpServletRequest) = store.contacts(actor(r).tenantId,false)
     @GetMapping("/teachers") fun teachers(r: HttpServletRequest) = store.contacts(actor(r).tenantId,true)
@@ -63,6 +63,7 @@ class SportsController(private val store: PostgresSportsStore, private val servi
     }
     @GetMapping("/recurrence-rules") fun recurrences(r: HttpServletRequest) = store.recurrences(actor(r).tenantId)
     @PostMapping("/recurrence-rules") fun recurrence(r: HttpServletRequest,@RequestBody rule: Recurrence) = service.generate(actor(r),rule)
+    @PostMapping("/recurrence-rules/{id}/stop") fun stopRecurrence(r: HttpServletRequest,@PathVariable id: UUID,@RequestBody input: StopRecurrence) = RecurrenceService(store).stop(actor(r),id,input)
     @GetMapping("/users") fun users(r: HttpServletRequest) = auth.users(actor(r))
     @PostMapping("/users") fun user(r: HttpServletRequest,@RequestBody input: UserInput) = mapOf("id" to auth.create(actor(r),input))
     @PostMapping("/users/{id}/deactivate") fun deactivate(r: HttpServletRequest,@PathVariable id: UUID) = auth.deactivate(actor(r),id)

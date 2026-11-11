@@ -8,7 +8,7 @@ Implementación del módulo `sports.finance`. Interfaz: **Caja y cierres**. Usa 
 2. Quien realiza el cierre registra fecha, ingresos en efectivo y transferencias por cuenta receptora. Hay una sola caja y un único cierre diario por negocio. Se puede registrar un día sin ingresos.
 3. **El efectivo del cierre es el ingreso bruto del día:** excluye la base y dinero retenido de otros días; incluye lo que posteriormente se registra como gasto. Si se calcula desde el dinero físico restante, se deben sumar los gastos del día pagados con ese efectivo para reconstruir el ingreso. No existe conciliación automática con reservas, pues también hay tienda.
 4. El efectivo se asigna a quien registra el cierre. Para el administrador se muestra como **Efectivo a tu cargo** y se acumula para el cuadre mensual, sin obligación de entregarlo. Las transferencias se asignan directamente a la cuenta seleccionada. El efectivo puede permanecer varios días con el empleado.
-5. En «Dinero y entregas» el empleado selecciona al administrador y solicita entregar **todo su saldo de efectivo**, descontados los gastos ya registrados. Se agrupan todos sus cierres todavía sin entrega. El dinero sigue bajo su responsabilidad hasta la aceptación.
+5. En «Entregas» el empleado selecciona al administrador y solicita entregar **todo su saldo de efectivo**, descontados los gastos ya registrados. Se agrupan todos sus cierres todavía sin entrega. El dinero sigue bajo su responsabilidad hasta la aceptación.
 El administrador puede iniciar un **traslado opcional** de su saldo completo a otro administrador, incluso si el dinero proviene exclusivamente de entregas recibidas y no tiene cierres propios. El receptor debe aceptar; no se mueve dinero al abrir la pantalla ni por terminar el mes.
 
 6. Mientras existe una solicitud pendiente, no se pueden registrar gastos ni ajustes sobre ese efectivo. Sí se pueden ingresar nuevos cierres: estos quedan para una siguiente entrega.
@@ -73,3 +73,11 @@ Local: `http://localhost:5002/sports/index.html`. Acceso habitual en `.local/spo
 **Publicación autorizada el 5 de noviembre de 2026:** V005 aplicada a producción después de un ensayo sobre una rama de la base productiva. El JAR conjunto ensayado con Java 17 se entrega en `build/libs/creativecode-1.0.jar` mediante el despliegue automático de `master`. URL: https://creative-code-darwinsalaz.koyeb.app/sports/index.html.
 
 La publicación incremental utiliza `release-finance.py` (ensayo primero, `--production` después) y `finance-rehearsal.py` para validar el JAR con Java 17. `verify-finance-public.py --wait 600` comprueba que el bundle servido corresponda al JAR y verifica ventas, autenticación y lecturas financieras sin crear movimientos reales. Las evidencias y los JAR anteriores se conservan en `.local/sports-release/`. No usar el antiguo `release-db.py` para V005. No hay reversión mediante borrado de tablas: ante un problema se revierte el código y se conservan los registros financieros.
+
+## Vista simplificada de dinero y entregas
+
+«Mi dinero» conserva los filtros de responsables y la selección de efectivo/cuenta. Cada movimiento muestra fecha, ingreso o salida, descripción breve e importe. Al abrirlo con clic, Enter o espacio aparecen el registro completo, cierres de origen, responsable, saldo posterior, notas y comprobantes.
+
+«Entregas» es una pestaña propia con contador de pendientes: revisión y aceptación, solicitud de entrega/traslado y un historial de aceptadas filtrable por mes de recepción. El historial incluye todos los meses por defecto; el detalle de cada entrega conserva declarado, recibido, faltante y nota. Para el administrador el traslado continúa siendo opcional.
+
+Cambio exclusivo de presentación: utiliza las consultas y operaciones financieras existentes, sin migraciones ni recálculo de saldos. `node tests/finance-clean-browser.mjs` comprueba interfaz con API simulada y cero escrituras, incluidos teclado, roles, filtro de historial y anchos de 320/390/760 px.

@@ -29,13 +29,13 @@ try{
  await f.getByRole('button',{name:'Gastos',exact:true}).click();await f.getByLabel('Dinero de donde se paga').selectOption(fixture.cash);await f.getByLabel('Importe del gasto COP').fill('10000');await f.getByLabel('Concepto',{exact:true}).fill('Compra de insumos desde navegador');
  await f.locator('input[type=file]').setInputFiles({name:'insumos.pdf',mimeType:'application/pdf',buffer:Buffer.from('%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n%%EOF')});
  await submitted(page,f.getByRole('button',{name:'Guardar gasto'}),'/finance/expenses');
- await f.getByRole('button',{name:'Dinero y entregas',exact:true}).click();await f.getByLabel('Administrador que recibe').selectOption(fixture.admin);
+ await f.getByRole('button',{name:/^Entregas/}).click();await f.getByLabel('Administrador que recibe').selectOption(fixture.admin);
  const before=await get('/finance',fixture.employeeToken);const expected=before.accounts.find(b=>b.account.id===fixture.cash).balance;
  await submitted(page,f.getByRole('button',{name:'Solicitar entrega completa'}),'/finance/handovers');
  const pending=(await get('/finance')).handovers.find(h=>h.status==='PENDING'&&h.senderId===fixture.employee);assert.equal(pending.expected,expected);
  await employee.context.close();
  const administrator=await session(fixture.adminToken);const p=administrator.page,ui=administrator.f;
- await ui.getByRole('button',{name:'Dinero y entregas',exact:true}).click();await ui.getByRole('button',{name:'Revisar y aceptar'}).click();await ui.getByLabel('Efectivo recibido',{exact:true}).fill(String(expected-5000));
+ await ui.getByRole('button',{name:/^Entregas/}).click();await ui.getByRole('button',{name:'Revisar y aceptar'}).click();await ui.getByLabel('Efectivo recibido',{exact:true}).fill(String(expected-5000));
  const note=ui.getByLabel('Nota del administrador');assert.equal(await note.getAttribute('required'),'');await note.fill('Faltante comprobado durante recepción de prueba');
  await submitted(p,ui.getByRole('button',{name:'Aceptar y registrar recepción'}),'/finance/handovers/'+pending.id+'/accept');
  await ui.getByRole('button',{name:'Cuentas y base',exact:true}).click();await ui.getByLabel('Nombre de la cuenta').fill('Nequi del administrador de prueba');await ui.getByLabel('Titular').selectOption(fixture.admin);await submitted(p,ui.getByRole('button',{name:'Agregar cuenta'}),'/finance/accounts');
@@ -45,8 +45,8 @@ try{
  await fs.mkdir('../docs/sports/screenshots',{recursive:true});await p.screenshot({path:'../docs/sports/screenshots/finance-month-desktop.png',fullPage:true});
  for(const width of [320,390,760]){
   await p.setViewportSize({width,height:844});
-  for(const section of ['Cierre diario','Dinero y entregas','Gastos','Resumen mensual','Cuentas y base']){
-   await ui.getByRole('button',{name:section,exact:true}).click();
+  for(const section of ['Cierre diario','Mi dinero','Entregas','Gastos','Resumen mensual','Cuentas y base']){
+   await ui.getByRole('button',{name:section==='Entregas'?/^Entregas/:section,exact:section!=='Entregas'}).click();
    assert.equal(await ui.evaluate(el=>el.scrollWidth<=el.clientWidth),true,'Finance overflow at '+width+' '+section);
    for(const input of await ui.locator('input:not([type=checkbox]),select,textarea').all()){if(await input.isVisible()){const box=await input.boundingBox();assert.ok(box.x>=0&&box.x+box.width<=width+1,'Field fits mobile: '+section);}}
   }

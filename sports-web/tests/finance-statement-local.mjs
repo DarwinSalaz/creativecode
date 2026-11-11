@@ -19,13 +19,18 @@ try {
  const response=page.waitForResponse(r=>r.url().includes('/accounts/'+fixture.adminCash+'/statement?month='+fixture.month));
  await f.getByLabel('Mes de movimientos').fill(fixture.month);await f.getByLabel('Mes de movimientos').dispatchEvent('change');const data=await (await response).json();
  assert.ok(data.movements.some(m=>m.sourceDays.some(d=>d.day.startsWith(fixture.previousMonth))));
+ assert.equal(await f.locator('.movement[open]').count(),0);
+ for(const summary of await f.locator('.movement-summary').all())await summary.click();
  await f.locator('.closing-origins').first().waitFor();
  const dateLabel=day=>new Intl.DateTimeFormat('es-CO',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'}).format(new Date(day+'T12:00:00Z'));
  const oldSource=data.movements.flatMap(m=>m.sourceDays).find(d=>d.day.startsWith(fixture.previousMonth));
  assert.ok((await f.locator('.closing-origins').allTextContents()).some(s=>s.includes(dateLabel(oldSource.day))));
+ await f.getByRole('button',{name:/^Entregas/}).click();
+ await f.getByRole('heading',{name:'Historial de entregas',exact:true}).waitFor();
  await f.getByRole('button',{name:'Trasladar efectivo (opcional)',exact:true}).click();await f.getByRole('heading',{name:'Trasladar mi efectivo',exact:true}).waitFor();
  assert.equal(await f.getByRole('button',{name:'Solicitar traslado completo'}).isEnabled(),true);
  await f.getByRole('button',{name:'Ocultar traslado',exact:true}).click();
+ await f.getByRole('button',{name:'Mi dinero',exact:true}).click();
  await page.locator('ion-content').evaluate(el=>el.scrollToTop(0));await page.screenshot({path:'../docs/sports/screenshots/finance-statement-desktop.png',fullPage:true});
  await f.getByRole('button',{name:'Cierre diario',exact:true}).click();await f.getByRole('heading',{name:'Efectivo a tu cargo',exact:true}).waitFor();
  assert.equal(await f.getByRole('button',{name:'Preparar entrega →'}).count(),0);

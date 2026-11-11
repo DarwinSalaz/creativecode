@@ -11,7 +11,8 @@ Ya funcionan login y reservas con persistencia real local. Ver [inicio y acceso 
 ## Límites de dominio
 
 - `Domain.kt`: entidades y puerto `SportsStore`.
-- `BookingService.kt`: casos de uso, transiciones, agenda, recurrencias, tolerancia y concurrencia.
+- `BookingService.kt`: casos de uso, transiciones, agenda, tolerancia y concurrencia.
+- `RecurrenceService.kt`: reglas semanales, materialización por ventana, conflictos, excepciones y finalización de series.
 - `PostgresSportsStore.kt`: adaptador JDBC, transacciones y auditoría.
 - `SportsAuth.kt`: identidad deportiva independiente; BCrypt coste 12, sesiones opacas de 256 bits, hash SHA-256 en almacenamiento, expiración de 12 horas, cuentas desactivables.
 - `SportsAccessInterceptor.kt`: autenticación, contexto de tenant y control de origen exclusivamente para rutas deportivas.
@@ -85,7 +86,7 @@ No usar el propietario/migrador de la BD como rol deportivo. Otorgar únicamente
 - El frontend consulta al abrir/cambiar vistas y cada 30 segundos en una pestaña visible. No hay solicitudes por segundo. El reloj usa referencia del servidor y tiempo monotónico local. No se guardan ediciones offline.
 - Referencia horaria entre semana 16:00–23:00; fuera de ella requiere casilla de autorización. Configuración avanzada por día/cancha queda diferida.
 - Tarifa: importe fijo por reserva según cancha, día y franja de **inicio**. No prorratea duraciones variables ni suma franjas cruzadas. La instantánea se conserva cuando solo cambia el nombre/notas. Revisar esta política con el negocio antes de configurar precios reales.
-- Series: generación explícita por administrador hasta 93 días. Instancias pendientes, claves únicas, cancelación individual y regeneración sin duplicados. Si una instancia entra en conflicto, la transacción completa falla; no hay generación silenciosa parcial ni cron automático.
+- Series: repetición semanal desde el formulario de reserva, para fijas y clases, con fecha final opcional. Generación inicial de hasta 93 días y materialización idempotente de ventanas futuras al consultar la agenda; cancelación y edición de una fecha, reemplazo y finalización administrativa de la serie. Ver [flujo y garantías](../docs/sports/RECURRENCE.md).
 - Profesores: clases manuales y convenio mensual en notas, sin facturación. Clientes ocasionales no crean contactos automáticamente.
 - WhatsApp solo se abre por acción humana después de editar el mensaje. Esa acción comparte nombre/teléfono/mensaje con WhatsApp; no se envía automáticamente.
 

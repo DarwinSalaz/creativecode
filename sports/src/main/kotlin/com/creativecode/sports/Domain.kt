@@ -30,7 +30,11 @@ data class BookingInput(val courtId: UUID, val guestName: String, val start: Ins
 data class Action(val version: Int, val reason: String? = null, val deviceId: String? = null, val exceptionConfirmed: Boolean = false)
 data class Pricing(val id: UUID = UUID.randomUUID(), val courtId: UUID, val weekday: Int, val fromMinute: Int, val toMinute: Int, val amount: BigDecimal)
 data class Recurrence(val id: UUID = UUID.randomUUID(), val courtId: UUID, val guestName: String, val phone: String? = null,
-    val weekday: Int, val localTime: String, val durationMinutes: Int = 60, val fromDate: String, val untilDate: String, val teamName: String? = null, val clientId: UUID? = null)
+    val weekday: Int, val localTime: String, val durationMinutes: Int = 60, val fromDate: String, val untilDate: String? = null, val teamName: String? = null, val clientId: UUID? = null,
+    val kind: Kind = Kind.FIXED, val teacherId: UUID? = null, val notes: String? = null,
+    val status: Status = Status.PENDING, val outsideHoursConfirmed: Boolean = true,
+    val automatic: Boolean = false, val stoppedFrom: String? = null, val excludedStarts: List<Instant> = emptyList(), val version: Int = 0)
+data class StopRecurrence(val fromDate: String, val version: Int)
 class SportsError(val code: String, override val message: String, val statusCode: Int = 400): RuntimeException(message)
 fun checkSports(ok: Boolean, code: String, message: String, status: Int = 400) { if (!ok) throw SportsError(code, message, status) }
 fun Actor.admin() = checkSports(role == Role.ADMIN, "FORBIDDEN", "Se requiere administrador", 403)

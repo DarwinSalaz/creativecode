@@ -1,3 +1,13 @@
+## Series semanales y vista simplificada de dinero — 10 noviembre 2026
+
+Publicación autorizada por el usuario. Incluye las dos actualizaciones preparadas: reservas semanales con fecha final opcional, cancelación/reemplazo individual y fin de serie; movimientos compactos desplegables y sección Entregas con pendientes e historial.
+
+- Sin migraciones ni conversión automática de reservas/reglas antiguas. Solo las nuevas series se materializan al consultar ventanas de agenda. No se crean datos ficticios en producción.
+- Pruebas: 92 Kotlin, 11 frontend; PostgreSQL local con consultas concurrentes, cancelación, movimiento, clases y fin de serie; Chrome para series y vista financiera en 320/390/760 px, con teclado e historial mensual. Las operaciones financieras de escritura existentes no se repitieron por el cambio visual.
+- El JAR empaquetado coincide con el frontend y módulo deportivo probados. Las 229 entradas de clases/configuración de ventas son idénticas a la versión anterior.
+- Respaldo: `.local/sports-release/pre-recurrence-money-20261110.jar`. Revertir solo código si fuera necesario; conservar los registros. La versión anterior no materializa reglas sin vencimiento, por lo que antes de operar una reversión debe evaluarse su compatibilidad con las series nuevas.
+- Verificación pública: hash del bundle y consultas de ventas, caja, promociones, canchas y definiciones de series, sin invocar generación ni crear movimientos financieros.
+
 ## Promociones: avance anterior y descuento visible — 9 noviembre 2026
 
 Publicación autorizada por el usuario. Permite al administrador ajustar el avance del ciclo con motivo e historial; resalta los descuentos en calendario, pendientes, operación y reserva. Conserva los precios históricos.

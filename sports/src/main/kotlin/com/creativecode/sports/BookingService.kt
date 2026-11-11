@@ -6,11 +6,15 @@ import java.util.UUID
 class BookingService(private val store: SportsStore, private val clock: Clock = Clock.systemUTC()) {
     fun list(a: Actor, from: Instant, to: Instant): List<Booking> {
         checkSports(to > from && Duration.between(from, to).toDays() <= 93, "INVALID_RANGE", "Consulta máximo 93 días")
-        return store.bookings(a.tenantId, from, to)
+        return store.transaction {
+            RecurrenceService(store,clock).ensure(a,from,to)
+            store.bookings(a.tenantId, from, to)
+        }
     }
     fun create(a: Actor, input: BookingInput, recurrence: UUID? = null): Booking = store.transaction {
         store.lockCourts(a.tenantId, listOf(input.courtId))
         validate(a, input)
+        if(recurrence==null) RecurrenceService(store,clock).ensure(a,input.start,input.end,listOf(input.courtId))
         val b = Booking(courtId = input.courtId, guestName = customerName(a, input), phone = input.phone,
             clientId = input.clientId, teacherId = input.teacherId, kind = input.kind, status = input.status,
             start = input.start, end = input.end, notes = input.notes, price = price(a, input), recurrenceId = recurrence, teamName = input.teamName?.trim()?.takeIf { it.isNotEmpty() })
@@ -21,17 +25,19 @@ class BookingService(private val store: SportsStore, private val clock: Clock = 
     }
     fun edit(a: Actor, id: UUID, input: BookingInput): Booking = store.transaction {
         val initial = find(a, id)
-        store.lockCourts(a.tenantId, listOf(initial.courtId, input.courtId).distinct().sortedBy { it.toString() })
+        store.lockCourts(a.tenantId, (listOf(initial.courtId, input.courtId)+store.recurrences(a.tenantId).filter { it.id==initial.recurrenceId }.map { it.courtId }).distinct().sortedBy { it.toString() })
         val old = store.lockBooking(a.tenantId, id) ?: throw SportsError("NOT_FOUND", "Reserva no encontrada", 404)
         checkSports(old.courtId == initial.courtId, "CONFLICT", "La reserva cambió; actualiza la vista", 409)
         checkSports(input.version == old.version, "STALE_VERSION", "La reserva cambió; actualiza la vista", 409)
         checkSports(old.status in listOf(Status.PENDING, Status.CONFIRMED), "INVALID_STATE", "Solo puedes editar reservas pendientes o confirmadas", 409)
         if (old.kind == Kind.BLOCK) a.admin()
         validate(a, input)
+        RecurrenceService(store,clock).ensure(a,input.start,input.end,listOf(input.courtId))
         val b = old.copy(courtId = input.courtId, guestName = customerName(a, input), phone = input.phone, clientId = input.clientId,
             teacherId = input.teacherId, kind = input.kind, status = input.status, start = input.start, end = input.end,
             notes = input.notes, teamName = input.teamName?.trim()?.takeIf { it.isNotEmpty() }, price = if (old.start == input.start && old.end == input.end && old.courtId == input.courtId) old.price else price(a, input), version = old.version + 1)
         conflicts(a, b)
+        if(old.start!=b.start) RecurrenceService(store,clock).excludeMoved(a,old)
         store.saveBooking(a, b, false)
         store.audit(a, id, "UPDATED", null)
         b
@@ -110,24 +116,5 @@ class BookingService(private val store: SportsStore, private val clock: Clock = 
         val minute = local.hour * 60 + local.minute
         return store.pricing(a.tenantId).find { it.courtId == b.courtId && it.weekday == local.dayOfWeek.value && minute >= it.fromMinute && minute < it.toMinute }?.amount
     }
-    fun generate(a: Actor, rule: Recurrence): List<Booking> = store.transaction {
-        a.admin()
-        val from = LocalDate.parse(rule.fromDate); val until = LocalDate.parse(rule.untilDate)
-        checkSports(!until.isBefore(from) && java.time.temporal.ChronoUnit.DAYS.between(from, until) <= 93 && rule.weekday in 1..7 && rule.durationMinutes in 5..720, "INVALID_RECURRENCE", "Rango de recurrencia inválido (máximo 93 días)")
-        val time = LocalTime.parse(rule.localTime)
-        store.lockCourts(a.tenantId, listOf(rule.courtId))
-        val existing = store.recurrences(a.tenantId).find { it.id == rule.id }
-        checkSports(existing == null || existing == rule, "RECURRENCE_IMMUTABLE", "Crea una nueva serie para cambiar la programación", 409)
-        store.saveRecurrence(a.tenantId, rule)
-        val result = mutableListOf<Booking>()
-        var date = from
-        while (!date.isAfter(until)) {
-            if (date.dayOfWeek.value == rule.weekday) {
-                val start = date.atTime(time).atZone(ZoneId.of(store.settings(a.tenantId).timezone)).toInstant()
-                if (!store.generated(a.tenantId, rule.id, start)) result.add(create(a, BookingInput(rule.courtId, rule.guestName, start, start.plusSeconds(rule.durationMinutes * 60L), phone = rule.phone, kind = Kind.FIXED, status = Status.PENDING, outsideHoursConfirmed = true, teamName = rule.teamName, clientId = rule.clientId), rule.id))
-            }
-            date = date.plusDays(1)
-        }
-        result
-    }
+    fun generate(a: Actor, rule: Recurrence): List<Booking> = RecurrenceService(store,clock).generate(a,rule)
 }

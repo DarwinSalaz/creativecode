@@ -2853,7 +2853,7 @@
         }
       },
       "post": {
-        "summary": "Crear/regenerar serie (admin), transacción completa; UUID estable para reintentos",
+        "summary": "Crear serie semanal fija o de clases (administrador o empleado); UUID estable para reintentos",
         "responses": {
           "200": {
             "description": "Operación completada",
@@ -2948,7 +2948,8 @@
               }
             }
           }
-        }
+        },
+        "description": "Valida conflictos futuros y crea inicialmente hasta 93 días. Las nuevas series se materializan al consultar cada ventana de agenda; las consultas concurrentes son idempotentes. Cancelar una instancia no elimina la serie."
       }
     },
     "/users": {
@@ -3440,6 +3441,63 @@
           }
         }
       }
+    },
+    "/recurrence-rules/{id}/stop": {
+      "post": {
+        "summary": "Terminar serie desde una fecha (solo administrador)",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "fromDate",
+                  "version"
+                ],
+                "properties": {
+                  "fromDate": {
+                    "type": "string",
+                    "format": "date",
+                    "description": "Hoy o futura, en la zona del negocio. Cancela fechas desde este día incluido."
+                  },
+                  "version": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Serie terminada. Conserva reservas pasadas, en juego y finalizadas."
+          },
+          "400": {
+            "description": "Fecha inválida"
+          },
+          "403": {
+            "description": "Requiere administrador"
+          },
+          "404": {
+            "description": "Serie inexistente en este negocio"
+          },
+          "409": {
+            "description": "Versión desactualizada"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3725,7 +3783,9 @@
           },
           "untilDate": {
             "type": "string",
-            "format": "date"
+            "format": "date",
+            "nullable": true,
+            "description": "Última fecha incluida. Omitir o null para repetición sin vencimiento."
           },
           "teamName": {
             "type": "string",
@@ -3737,6 +3797,57 @@
             "type": "string",
             "format": "uuid",
             "nullable": true
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "FIXED",
+              "CLASS"
+            ],
+            "default": "FIXED"
+          },
+          "teacherId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "notes": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "CONFIRMED"
+            ],
+            "default": "PENDING"
+          },
+          "outsideHoursConfirmed": {
+            "type": "boolean"
+          },
+          "automatic": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "stoppedFrom": {
+            "type": "string",
+            "format": "date",
+            "nullable": true,
+            "readOnly": true
+          },
+          "excludedStarts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "readOnly": true
+          },
+          "version": {
+            "type": "integer",
+            "readOnly": true
           }
         },
         "required": [
@@ -3744,8 +3855,7 @@
           "guestName",
           "weekday",
           "localTime",
-          "fromDate",
-          "untilDate"
+          "fromDate"
         ]
       },
       "UserInput": {

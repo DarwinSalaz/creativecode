@@ -101,3 +101,19 @@ Editar carga una copia de nombre, teléfono y notas conservando el ID. El guarda
 - Pasaron 82 pruebas Kotlin (27 ventas, 55 deportivas), 11 pruebas frontend, compilación Angular y JAR conjunto. Chrome con API simulada comprobó marca de promoción, valor cero y formulario móvil sin desbordamiento; Chrome con PostgreSQL local comprobó creación de cliente, configuración, ajuste a cinco partidos, historial y persistencia tras recargar.
 - Comparación del JAR: las 229 entradas de clases/configuración de ventas son idénticas al JAR versionado. No se ejecutaron migraciones ni escrituras en producción.
 - Servidor de prueba disponible en `http://localhost:5002/sports/index.html`, exclusivamente contra `127.0.0.1:55432/sports_local`. JAR preparado en `/private/tmp/creativecode-sports-package/libs/creativecode-1.0.jar`. Publicación autorizada por el usuario; seguimiento en PRODUCTION_RELEASE.md.
+
+## Series semanales con fin opcional — 10 de noviembre de 2026
+
+- Nueva reserva Fija crea una regla semanal; Escuelita permite activar repetición. Fecha final inclusiva opcional, estado inicial Por confirmar. Cancelar o mover una instancia conserva las demás; una cancelada ofrece Reservar este horario para otra persona. Administración permite terminar la serie desde una fecha sin borrar historial ni cancelar partidos ya iniciados.
+- Registros antiguos sin serie permanecen individuales, con opción de preparar una serie desde la próxima semana. Las reglas finitas antiguas no se materializan automáticamente. No requiere migraciones ni convierte datos productivos.
+- Pasaron 92 pruebas Kotlin (27 ventas, 65 deportivas), 11 pruebas frontend y compilación Angular/JAR. Prueba PostgreSQL local: cuatro consultas concurrentes sin duplicados, materialización a diez años, cancelación y reemplazo, movimiento sin regeneración, clases de profesor por un mes, permisos y versión al terminar.
+- Chrome local: creación desde el formulario, siguiente semana, cancelación individual, reemplazo mediante el nuevo botón, fin de serie y pantalla móvil sin desbordamiento. Una respuesta de agenda demorada deliberadamente comprueba que cambiar de fecha durante una carga termina consultando la última fecha seleccionada.
+- Las 229 entradas de código/configuración de ventas del JAR preparado coinciden byte a byte con el JAR productivo versionado. No se modificó el JAR productivo ni se publicaron estos cambios.
+- Servidor actualizado disponible en `http://localhost:5002/sports/index.html`; JAR en `/private/tmp/creativecode-sports-package/libs/creativecode-1.0.jar`. Detalle: [RECURRENCE.md](RECURRENCE.md).
+
+## Dinero compacto y entregas separadas — 10 de noviembre de 2026
+
+- Movimientos resumidos con detalle desplegable accesible por teclado, manteniendo orígenes y comprobantes. Pestaña Entregas con pendientes destacados, formularios existentes e historial de aceptadas por mes.
+- Angular y JAR compilados. Chrome con API simulada: vista compacta, expansión/cierre, teclado, separación de entregas, filtro mensual y todos los meses, traslado opcional de administrador, entrada de empleado a preparar entrega y diseño 320/390/760 px; cero escrituras de prueba en bases de datos.
+- Pruebas locales existentes de finanzas adaptadas a las nuevas pestañas y detalles plegados; en este cambio visual no se volvieron a ejecutar sus operaciones financieras de escritura.
+- Servidor local actualizado; producción y JAR versionado conservados. Las reservas semanales de la actualización anterior siguen incluidas en el paquete local, también pendientes de publicación.

@@ -22,12 +22,12 @@ export class AppComponent implements OnInit,OnDestroy {
   venues:any[]=[]; venueForm:any={name:'',address:''};
   pricingEditor=false; pricingCourtFilter=''; weekdays=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
   pricing:any={courtId:'',weekday:1,fromMinute:960,toMinute:1380,amount:0}; prices:any[]=[];
-  recurrence:any={clientId:'',courtId:'',guestName:'',teamName:'',phone:'',weekday:1,localTime:'19:00',durationMinutes:60,fromDate:'',untilDate:''};
+  recurrenceRules:any[]=[]; repeatWeekly=false; repeatUntil=''; repeatId=''; stopDates:Record<string,string>={};
   userForm={username:'',name:'',password:'',role:'EMPLOYEE'}; users:any[]=[];
   loyalty:any[]=[]; loyaltyClient?:Contact; loyaltyForm:any={requiredMatches:5,rewardPercent:100,maxGapDays:21,active:true}; loyaltyVersion=0; loyaltyEvents:any[]=[]; exceptionDate=''; exceptionReason='';
   audio=false; private audioContext?:AudioContext; private alertNodes:OscillatorNode[]=[]; private alertGain?:GainNode; private interval:any; private refreshInterval:any;
   device=localStorage.getItem('sports.device')||crypto.randomUUID();
-  private initialCalendarScroll=true;
+  private initialCalendarScroll=true; private refreshAgain=false;
   private sounded=new Set<string>(JSON.parse(sessionStorage.getItem('sports.alerts')||'[]'));
   constructor(public api:ApiService){localStorage.setItem('sports.device',this.device);this.selectedDate=this.dateKey(new Date());}
   copy<T>(value:T):T{return {...value};}
@@ -45,7 +45,7 @@ export class AppComponent implements OnInit,OnDestroy {
   async signIn(){await this.run(async()=>{const res=await this.api.request<{token:string;actor:Actor}>('/auth/login','POST',this.login);this.api.save(res.token);this.actor=res.actor;localStorage.setItem('sports.business',this.login.tenantId);this.login.password='';await this.restore();});}
   async restore(){try{this.actor=await this.api.request<Actor>('/me');await this.refresh();}catch(e:any){this.error=e.message;if(!this.api.token)this.actor=undefined;}}
   async logout(){await this.run(async()=>{await this.api.request('/auth/logout','POST');this.api.clear();this.actor=undefined;this.bookings=[];this.active=[];this.audio=false;this.stopAlert();});}
-  async refresh(){if(this.refreshing||!this.actor)return;this.refreshing=true;this.loading=true;try{
+  async refresh(){if(!this.actor)return;if(this.refreshing){this.refreshAgain=true;return;}this.refreshing=true;this.loading=true;try{
     const t=performance.now();const op=await this.api.request<Operations>('/operations/today');
     this.serverAnchor=Date.parse(op.serverTime)+(performance.now()-t)/2;this.performanceAnchor=performance.now();this.now=this.serverAnchor;
     this.settings=op.settings;this.courts=op.courts;this.active=op.active;this.upcoming=op.reservations;
@@ -53,9 +53,10 @@ export class AppComponent implements OnInit,OnDestroy {
     this.bookings=await this.api.request<Booking[]>(`/reservations?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
     [this.clients,this.teachers,this.prices]=await Promise.all([this.api.request<Contact[]>('/clients'),this.api.request<Contact[]>('/teachers'),this.api.request<any[]>('/pricing-rules')]);
     this.loyalty=await this.api.request<any[]>('/loyalty');
+    this.recurrenceRules=await this.api.request<any[]>('/recurrence-rules');
     this.lastSync=new Date().toISOString();
     if(this.initialCalendarScroll&&this.tab==='calendar'){setTimeout(()=>{const el=document.querySelector('.calendar-scroll');if(el){el.scrollTop=16*48;this.initialCalendarScroll=false;}},0);}
-  }catch(e:any){this.error=e.message;if(!this.api.token)this.actor=undefined;}finally{this.refreshing=false;this.loading=false;}}
+  }catch(e:any){this.error=e.message;if(!this.api.token)this.actor=undefined;}finally{this.refreshing=false;this.loading=false;if(this.refreshAgain){this.refreshAgain=false;await this.refresh();}}}
   dateKey(d:Date){return new Intl.DateTimeFormat('en-CA',{timeZone:this.settings.timezone,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);}
   shiftDate(date:string,n:number){const d=new Date(date+'T12:00:00Z');d.setUTCDate(d.getUTCDate()+n);return d.toISOString().slice(0,10);}
   days(){if(this.calendarMode==='day'||this.tab==='pending'||window.matchMedia('(max-width:760px)').matches)return [this.selectedDate];const d=new Date(this.selectedDate+'T12:00:00Z');const monday=this.shiftDate(this.selectedDate,-((d.getUTCDay()+6)%7));return Array.from({length:7},(_,i)=>this.shiftDate(monday,i));}
@@ -74,7 +75,7 @@ export class AppComponent implements OnInit,OnDestroy {
     for(let n=0;n<3;n++){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:this.settings.timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(instant));const p:any={};parts.forEach(v=>p[v.type]=v.value);const observed=Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`);instant+=target-observed;}
     return new Date(instant).toISOString();
   }
-  open(b?:Booking,date=this.selectedDate){this.editing=b;this.form=b?{...b,start:this.localInput(b.start),end:this.localInput(b.end),outsideHoursConfirmed:false}:{courtId:this.courtFilter||this.courts.find(c=>c.active)?.id||'',guestName:'',teamName:'',phone:'',kind:'NORMAL',status:'PENDING',start:date+'T19:00',end:date+'T20:00',notes:'',outsideHoursConfirmed:false};if(!b)this.defaultDuration();this.editor=true;this.error='';}
+  open(b?:Booking,date=this.selectedDate){this.repeatWeekly=false;this.repeatUntil='';this.repeatId=crypto.randomUUID();this.editing=b;this.form=b?{...b,start:this.localInput(b.start),end:this.localInput(b.end),outsideHoursConfirmed:false}:{courtId:this.courtFilter||this.courts.find(c=>c.active)?.id||'',guestName:'',teamName:'',phone:'',kind:'NORMAL',status:'PENDING',start:date+'T19:00',end:date+'T20:00',notes:'',outsideHoursConfirmed:false};if(!b)this.defaultDuration();this.editor=true;this.error='';}
   calendarCourts(){return this.courts.filter(c=>!this.courtFilter||c.id===this.courtFilter);}
   openSlot(date:string,minute:number,court:Court){
     if(this.busy||!court.active)return;
@@ -93,7 +94,20 @@ export class AppComponent implements OnInit,OnDestroy {
   formQuote(){if(this.editing&&!['PENDING','CONFIRMED','IN_PROGRESS'].includes(this.editing.status))return reservationQuote(this.editing,this.loyalty);return priceQuote(this.formPrice(),availableRewardPercent(this.loyalty,this.form.clientId,this.form.kind,this.editing?.rewardPercent||0));}
   bookingQuote(b:Booking){return reservationQuote(b,this.loyalty);}
   promotionIsPending(b?:Booking){return !!b&&['PENDING','CONFIRMED','IN_PROGRESS'].includes(b.status)&&availableRewardPercent(this.loyalty,b.clientId,b.kind,b.rewardPercent||0)>0;}
-  async save(){await this.run(async()=>{const body={...this.form,start:this.localInstant(this.form.start),end:this.localInstant(this.form.end),clientId:this.form.clientId||null,teacherId:this.form.teacherId||null};await this.api.request(this.editing?`/reservations/${this.editing.id}`:'/reservations',this.editing?'PATCH':'POST',body);this.editor=false;this.notice='Reserva guardada';await this.refresh();});}
+  replaceBooking(b:Booking){this.open(undefined,this.dateKeyDate(b.start));this.form.courtId=b.courtId;this.form.start=this.localInput(b.start);this.form.end=this.localInput(b.end);}
+  repeating(){return !this.editing&&(this.form.kind==='FIXED'||this.form.kind==='CLASS'&&this.repeatWeekly);}
+  repeatLabel(){const d=new Date(this.form.start?.slice(0,10)+'T12:00:00Z');return this.weekdays[(d.getUTCDay()+6)%7]+' a las '+(this.form.start?.slice(11,16)||'');}
+  repeatExisting(b:Booking){this.open(undefined,this.shiftDate(this.dateKeyDate(b.start),7));this.form={...b,id:undefined,version:undefined,start:this.shiftDate(this.dateKeyDate(b.start),7)+'T'+this.time(b.start),end:this.shiftDate(this.dateKeyDate(b.end),7)+'T'+this.time(b.end),status:'PENDING',outsideHoursConfirmed:false};this.repeatWeekly=true;}
+  async save(){await this.run(async()=>{
+    if(this.repeating()){
+      const date=this.form.start.slice(0,10);const day=new Date(date+'T12:00:00Z').getUTCDay();
+      await this.api.request('/recurrence-rules','POST',{id:this.repeatId,courtId:this.form.courtId,guestName:this.form.guestName,phone:this.form.phone,clientId:this.form.clientId||null,teacherId:this.form.teacherId||null,teamName:this.form.teamName,notes:this.form.notes,kind:this.form.kind,status:this.form.status,weekday:day||7,localTime:this.form.start.slice(11,16),durationMinutes:(Date.parse(this.localInstant(this.form.end))-Date.parse(this.localInstant(this.form.start)))/60000,fromDate:date,untilDate:this.repeatUntil||null,outsideHoursConfirmed:this.form.outsideHoursConfirmed});
+      this.notice='Serie semanal guardada'+(this.repeatUntil?' hasta '+this.repeatUntil:' sin fecha de fin');
+    }else{const body={...this.form,start:this.localInstant(this.form.start),end:this.localInstant(this.form.end),clientId:this.form.clientId||null,teacherId:this.form.teacherId||null};await this.api.request(this.editing?`/reservations/${this.editing.id}`:'/reservations',this.editing?'PATCH':'POST',body);this.notice='Reserva guardada';}
+    this.editor=false;await this.refresh();
+  });}
+  async stopSeries(r:any){const fromDate=this.stopDates[r.id]||this.dateKey(new Date());if(!confirm(`¿Terminar la serie de ${r.guestName} desde ${fromDate}? Se cancelarán las reservas pendientes y confirmadas desde esa fecha; se conservan las anteriores y las que ya iniciaron.`))return;await this.run(async()=>{await this.api.request(`/recurrence-rules/${r.id}/stop`,'POST',{fromDate,version:r.version});await this.refresh();this.notice='Serie terminada desde '+fromDate;});}
+
   canEdit(b:Booking){return ['PENDING','CONFIRMED'].includes(b.status);}
   async action(b:Booking,action:string){
     let reason:string|null=null;let exceptionConfirmed=false;
@@ -153,7 +167,7 @@ export class AppComponent implements OnInit,OnDestroy {
   openPricing(p?:any,court?:string,day=1){this.pricing=p?{...p}:{courtId:court||this.pricingCourtFilter||this.courts[0]?.id||'',weekday:day,fromMinute:960,toMinute:1380,amount:0};this.pricingEditor=true;setTimeout(()=>{document.getElementById('pricing-editor')?.scrollIntoView({behavior:'smooth',block:'center'});document.querySelector<HTMLSelectElement>('#pricing-editor select')?.focus({preventScroll:true});},0);}
   async savePricing(){await this.run(async()=>{await this.api.request('/pricing-rules','POST',this.pricing);this.prices=await this.api.request<any[]>('/pricing-rules');this.pricingEditor=false;this.notice='Tarifa guardada. Las reservas existentes conservan su precio.';});}
 
-  async generate(){await this.run(async()=>{const body={...this.recurrence,clientId:this.recurrence.clientId||null,id:this.recurrence.id||crypto.randomUUID()};this.recurrence.id=body.id;const created=await this.api.request<any[]>('/recurrence-rules','POST',body);await this.refresh();this.notice=`${created.length} reservas pendientes generadas`;});}
+
   async createUser(){await this.run(async()=>{await this.api.request('/users','POST',this.userForm);this.userForm={username:'',name:'',password:'',role:'EMPLOYEE'};this.users=await this.api.request<any[]>('/users');this.notice='Cuenta creada';});}
   async deactivate(user:any){if(!confirm(`¿Desactivar la cuenta de ${user.name}?`))return;await this.run(async()=>{await this.api.request(`/users/${user.id}/deactivate`,'POST');this.users=await this.api.request<any[]>('/users');});}
 }
