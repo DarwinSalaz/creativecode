@@ -7,6 +7,7 @@ import com.portafolio.mappers.ApplicationUserMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.repositories.RelUserWalletRepository
 import com.portafolio.services.ApplicationUserService
+import com.portafolio.services.ApplicationUserWalletService
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.ResponseEntity
 import org.springframework.security.authentication.BadCredentialsException
@@ -33,6 +34,9 @@ class ApplicationUserController {
     @Autowired
     private lateinit var relUserWalletRepository: RelUserWalletRepository
 
+    @Autowired
+    private lateinit var applicationUserWalletService: ApplicationUserWalletService
+
     @PostMapping("/application_user/create")
     fun createApplicationUser(@Valid @RequestBody applicationUserCreateDto: ApplicationUserCreateDto) : ResponseEntity<HashMap<String, Boolean>> {
         val userExist = service.existingUser(applicationUserCreateDto.username)
@@ -43,10 +47,7 @@ class ApplicationUserController {
 
         val userSaved = service.save(user)
 
-        if(!applicationUserCreateDto.walletIds.isNullOrEmpty()) {
-            val relWalletsUser = mapper.map(applicationUserId = userSaved.applicationUserId, walletIds = applicationUserCreateDto.walletIds)
-            relUserWalletRepository.saveAll(relWalletsUser)
-        }
+        applicationUserWalletService.replaceWallets(userSaved.applicationUserId, applicationUserCreateDto.walletIds)
 
         return ResponseEntity.ok().body(hashMapOf("ok" to true))
     }
@@ -58,10 +59,7 @@ class ApplicationUserController {
 
         val userSaved = repository.save(applicationUser)
 
-        if(!applicationUserCreateDto.walletIds.isNullOrEmpty()) {
-            val relWalletsUser = mapper.map(applicationUserId = userSaved.applicationUserId, walletIds = applicationUserCreateDto.walletIds)
-            relUserWalletRepository.saveAll(relWalletsUser)
-        }
+        applicationUserWalletService.replaceWallets(userSaved.applicationUserId, applicationUserCreateDto.walletIds)
 
         return userSaved
     }
