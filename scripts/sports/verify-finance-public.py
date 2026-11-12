@@ -4,8 +4,8 @@ from decimal import Decimal
 import argparse,datetime,hashlib,json,pathlib,re,time,urllib.request,urllib.error,zipfile
 ROOT=pathlib.Path(__file__).resolve().parents[2];OUT=ROOT/'.local/sports-release'
 BASE='https://creative-code-darwinsalaz.koyeb.app'
-p=argparse.ArgumentParser();p.add_argument('--wait',type=int,default=0);a=p.parse_args()
-jar=ROOT/'build/libs/creativecode-1.0.jar'
+p=argparse.ArgumentParser();p.add_argument('--wait',type=int,default=0);p.add_argument('--investments',action='store_true');p.add_argument('--jar',type=pathlib.Path,default=ROOT/'build/libs/creativecode-1.0.jar');a=p.parse_args()
+jar=a.jar
 with zipfile.ZipFile(jar) as z:
  html=z.read('BOOT-INF/classes/static/sports/index.html')
  main=re.search(rb'src="(main-[^"]+\.js)"',html).group(1).decode()
@@ -44,6 +44,15 @@ try:
  checks['sportsLoyalty']=request('/api/sports/v1/loyalty',token=token)[0]
  checks['sportsRecurrenceRules']=request('/api/sports/v1/recurrence-rules',token=token)[0]
  checks['sportsCourts']=request('/api/sports/v1/courts',token=token)[0]
+ if a.investments:
+  code,raw=request('/api/sports/v1/investments',token=token);investments=json.loads(raw)
+  assert isinstance(investments['records'],list) and isinstance(investments['administrators'],list)
+  assert Decimal(str(investments['total']))==sum((Decimal(str(x['amount'])) for x in investments['byAdministrator']),Decimal(0))
+  checks['sportsInvestments']=code
+  checks['sportsInvestmentsMonth']=request('/api/sports/v1/investments?month='+overview['today'][:7],token=token)[0]
+  try:request('/api/sports/v1/investments')
+  except urllib.error.HTTPError as err:assert err.code==401;checks['sportsInvestmentsUnauthenticated']=err.code
+  else:raise AssertionError('Investments accepted an anonymous request')
 finally:request('/api/sports/v1/auth/logout',{},token)
 checks.update(verifiedAt=datetime.datetime.now(datetime.timezone.utc).isoformat(),url=BASE+'/sports/index.html',jarSha256=hashlib.sha256(jar.read_bytes()).hexdigest())
 file=OUT/'finance-public-verified.json';file.write_text(json.dumps(checks,indent=2));file.chmod(0o600)

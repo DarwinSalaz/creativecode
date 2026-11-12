@@ -34,7 +34,7 @@ if not query("SELECT 1 FROM pg_namespace WHERE nspname='sports';",DB):
     path.write_text(json.dumps(config,indent=2)+'\n');path.chmod(0o600)
 else:
     if config.get('migrationSha256')!=digest:raise SystemExit('Migration checksum changed; prepare a new version, do not overwrite the schema')
-    if query('SELECT version FROM sports.schema_history ORDER BY version;',DB) not in ('1','1\n2','1\n2\n3','1\n2\n3\n4','1\n2\n3\n4\n5'):raise SystemExit('Unexpected sports migration history')
+    if query('SELECT version FROM sports.schema_history ORDER BY version;',DB) not in ('1','1\n2','1\n2\n3','1\n2\n3\n4','1\n2\n3\n4\n5','1\n2\n3\n4\n5\n6'):raise SystemExit('Unexpected sports migration history')
 migration2=ROOT/'sports/migrations/V002__optional_team_name.sql'
 digest2=hashlib.sha256(migration2.read_bytes()).hexdigest()
 if not query('SELECT 1 FROM sports.schema_history WHERE version=2;',DB):
@@ -67,9 +67,18 @@ if not query('SELECT 1 FROM sports.schema_history WHERE version=5;',DB):
     path.write_text(json.dumps(config,indent=2)+'\n');path.chmod(0o600)
 elif config.get('migrationV005Sha256')!=digest5:
     raise SystemExit('V005 checksum changed; prepare a new migration')
+migration6=ROOT/'sports/migrations/V006__administrator_investments.sql'
+digest6=hashlib.sha256(migration6.read_bytes()).hexdigest()
+if not query('SELECT 1 FROM sports.schema_history WHERE version=6;',DB):
+    query(migration6.read_text(),DB)
+    config['migrationV006Sha256']=digest6
+    path.write_text(json.dumps(config,indent=2)+'\n');path.chmod(0o600)
+elif config.get('migrationV006Sha256')!=digest6:
+    raise SystemExit('V006 checksum changed; prepare a new migration')
 query('''GRANT USAGE ON SCHEMA sports TO sports_app;
 GRANT SELECT,INSERT,UPDATE ON ALL TABLES IN SCHEMA sports TO sports_app;
 REVOKE UPDATE,DELETE ON sports.finance_entries,sports.finance_days,sports.finance_months,sports.finance_commands,sports.finance_handover_days,sports.finance_receipts FROM sports_app;
+REVOKE UPDATE,DELETE ON sports.investments,sports.investment_contributions FROM sports_app;
 REVOKE UPDATE ON sports.audit_events FROM sports_app;
 REVOKE UPDATE,DELETE ON sports.loyalty_ledger FROM sports_app;
 REVOKE INSERT,UPDATE ON sports.schema_history FROM sports_app;
@@ -87,4 +96,4 @@ for uid,name,color in [('33333333-3333-4333-8333-333333333333','Cancha 1','#167d
 access=LOCAL/'sports-local-access.txt'
 access.write_text('SOLO PRUEBAS LOCALES\nURL: http://localhost:5002/sports/index.html\nNegocio: '+tenant+'\nUsuarios: admin, empleado1, empleado2\nContraseña local: '+config['loginPassword']+'\n')
 access.chmod(0o600)
-print('PASS: isolated sports_local on port 55432; migrations V001-V005; 3 local accounts and 2 courts. Access details: .local/sports-local-access.txt')
+print('PASS: isolated sports_local on port 55432; migrations V001-V006; 3 local accounts and 2 courts. Access details: .local/sports-local-access.txt')

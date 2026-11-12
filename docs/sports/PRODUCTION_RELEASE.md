@@ -1,3 +1,18 @@
+# Inversiones externas de administradores — 11 noviembre 2026
+
+Publicación y creación de tablas autorizadas por el usuario. V006 aplicada en producción el 12 de noviembre a las 02:25 UTC: `sports.investments` y `sports.investment_contributions`, sin datos ficticios. No modifica caja, cierres ni filas existentes de ventas/deportes.
+
+- Ensayo en rama `br-delicate-water-b79pl7d9`, con copia de producción y el JAR candidato usando Java 17 y `sports_runtime`: aportes compartidos, acumulados, idempotencia, permisos y lecturas de ventas aprobados.
+- En ensayo y producción, huellas de filas previas iguales dentro de snapshot estable; estructura y permisos de ventas conservan `dd4569add018ca448e1e1eb778064a0f`.
+- Respaldo previo sin cómputo: `br-autumn-cherry-b78hsr0v` (`sports-pre-investments-20261112`), vence el 19 noviembre a las 03:00 UTC. Rama de ensayo vence el 13 noviembre a las 03:00 UTC.
+- Reversión de código: `.local/sports-release/pre-investments-deployed.jar`. Conservar las nuevas tablas y registros; no restaurar toda la base compartida. El código anterior ignora estas dos tablas.
+- Paquete aislado preparado desde `a922a7b` más cambios deportivos. Las 226 entradas de clases/configuración fuera de los recursos web deportivos coinciden con la versión publicada. Se conserva el JAR de trabajo concurrente de ventas; el índice Git recibe directamente el JAR probado de Inversiones.
+- 100 pruebas Kotlin y 11 frontend, integración PostgreSQL local, Chrome responsive y ensayo Neon aprobados.
+- Verificación pública tras desplegar: `python3 scripts/sports/verify-finance-public.py --jar /private/tmp/creativecode-investments-package/libs/creativecode-1.0.jar --investments --wait 600`. Comprueba bundle, ventas, caja, reservas y acumulados de inversiones sin crear inversiones productivas.
+- Evidencia privada: `investments-production-verified.json`, `investments-rehearsal-verified.json`, `investments-rehearsal-smoke.json` y `finance-public-verified.json` en `.local/sports-release/`.
+
+---
+
 ## Series semanales y vista simplificada de dinero — 10 noviembre 2026
 
 Publicación autorizada por el usuario. Incluye las dos actualizaciones preparadas: reservas semanales con fecha final opcional, cancelación/reemplazo individual y fin de serie; movimientos compactos desplegables y sección Entregas con pendientes e historial.

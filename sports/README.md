@@ -114,3 +114,7 @@ El canje ocurre al finalizar el siguiente partido: se conserva el precio base y 
 Una racha sin beneficio ganado vence tras el máximo de días entre finalizaciones. La consulta muestra el avance efectivo; el reinicio queda registrado al finalizar otro partido. Una prórroga justificada hasta fecha futura permite conservar/restaurar el ciclo todavía no reiniciado. Pausar suspende conteos y canjes, conserva el avance, pero no congela el plazo de racha. Meta y porcentaje no cambian mientras haya avance o beneficio pendiente.
 
 Historial inmutable con actor, fecha, reserva y estado posterior; configuración y excepciones usan versión optimista. Bloqueo de cliente, transacción común con finalización e índice único impiden canjes/conteos duplicados. V003 es aditiva, exclusivamente deportiva; aplicada solo en localhost.
+
+## Inversiones externas
+
+Sección exclusiva de administradores, aportes compartidos y acumulado histórico por persona, sin afectar caja. Ver [flujo, migración V006 y pruebas](../docs/sports/INVESTMENTS.md). V006 productiva aplicada con autorización y ensayo aislado; publicación por el flujo existente de Koyeb.

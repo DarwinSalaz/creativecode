@@ -117,3 +117,12 @@ Editar carga una copia de nombre, teléfono y notas conservando el ID. El guarda
 - Angular y JAR compilados. Chrome con API simulada: vista compacta, expansión/cierre, teclado, separación de entregas, filtro mensual y todos los meses, traslado opcional de administrador, entrada de empleado a preparar entrega y diseño 320/390/760 px; cero escrituras de prueba en bases de datos.
 - Pruebas locales existentes de finanzas adaptadas a las nuevas pestañas y detalles plegados; en este cambio visual no se volvieron a ejecutar sus operaciones financieras de escritura.
 - Servidor local actualizado; producción y JAR versionado conservados. Las reservas semanales de la actualización anterior siguen incluidas en el paquete local, también pendientes de publicación.
+
+## Inversiones de administradores — 11 de noviembre de 2026
+
+- Sección ADMIN independiente de caja, aportes de uno o varios administradores, fecha y categoría, historial desplegable con filtro mensual y acumulado histórico por persona ordenado por importe.
+- Pasaron 100 pruebas Kotlin (27 ventas y 73 deportivas), 11 pruebas frontend y compilación Angular/JAR. Ocho pruebas nuevas cubren autorización, aportantes, suma exacta, idempotencia, fechas, historial, aislamiento y administradores inactivos.
+- V006 aplicada solamente al clúster local dedicado. Prueba API/PostgreSQL con negocio desechable: inversión compartida, reintentos concurrentes sin duplicar, conflicto al cambiar datos, permisos, acumulados mensuales/históricos y protección contra UPDATE/DELETE. Libro financiero completo y datos de ventas permanecieron idénticos tras registrar inversiones.
+- Chrome local: registro repartido entre dos administradores, bloqueo por suma incorrecta, detalle, totales, todos los meses, menú oculto y API 403 para empleado; formulario e historial sin desbordamientos a 320/390/760 px. Capturas `.local/investments-desktop.png` y `.local/investments-mobile.png`.
+- Paquete construido desde el código publicado `a922a7b` más los cambios deportivos, sin incluir modificaciones concurrentes de ventas. Las 219 clases/archivos bajo `BOOT-INF/classes/com/portafolio/` son idénticos al JAR publicado. JAR versionado conservado. Servidor local actualizado en puerto 5002.
+- Esta funcionalidad no se publicó ni ejecutó migraciones productivas. Detalles y contrato: [INVESTMENTS.md](INVESTMENTS.md).

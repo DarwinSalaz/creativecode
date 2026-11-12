@@ -2,13 +2,14 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IonApp, IonContent } from '@ionic/angular';
+import { InvestmentsComponent } from './investments/investments.component';
 import { FinanceComponent } from './finance/finance.component';
 import { ApiService } from './auth/api.service';
 import { Actor,Booking,Court,Contact,Settings,Operations,labels } from './reservations/models';
 import {matchTiming,clockLabel,alertKeys} from './operations/timer.mjs';
 import {availableRewardPercent,priceQuote,scheduledPrice,reservationQuote} from './reservations/price-quote.mjs';
 
-@Component({selector:'sports-app',standalone:true,imports:[CommonModule,FormsModule,IonApp,IonContent,FinanceComponent],templateUrl:'./app.component.html',styleUrls:['./app.component.css']})
+@Component({selector:'sports-app',standalone:true,imports:[CommonModule,FormsModule,IonApp,IonContent,FinanceComponent,InvestmentsComponent],templateUrl:'./app.component.html',styleUrls:['./app.component.css']})
 export class AppComponent implements OnInit,OnDestroy {
   slots=Array.from({length:24},(_,i)=>i*60);
   hours=Array.from({length:24},(_,i)=>i); clientSearch='';

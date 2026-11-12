@@ -1,6 +1,7 @@
 package com.creativecode.sports
 
 import com.creativecode.sports.finance.*
+import com.creativecode.sports.investments.*
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
@@ -31,6 +32,7 @@ class SportsRuntime(env: Environment, json: ObjectMapper): AutoCloseable {
     val store = PostgresSportsStore(pool,json)
     val auth = SportsAuth(store)
     val service = BookingService(store)
+    val investments = InvestmentService(PostgresInvestmentStore(store))
     val finance = FinanceService(PostgresFinanceStore(store,json),json)
     override fun close() = pool.close()
 }
@@ -39,6 +41,7 @@ class SportsConfiguration {
     @Bean(destroyMethod="close") fun sportsRuntime(env: Environment, json: ObjectMapper) = SportsRuntime(env,json)
     @Bean fun sportsController(runtime: SportsRuntime) = SportsController(runtime.store,runtime.service,runtime.auth)
     @Bean fun financeController(runtime: SportsRuntime) = FinanceController(runtime.finance)
+    @Bean fun investmentController(runtime: SportsRuntime) = InvestmentController(runtime.investments)
     @Bean fun sportsErrors() = SportsErrors()
     @Bean fun sportsWebConfiguration(runtime: SportsRuntime, env: Environment, json: ObjectMapper): WebMvcConfigurer = object: WebMvcConfigurer {
         override fun addCorsMappings(registry: org.springframework.web.servlet.config.annotation.CorsRegistry) {
@@ -54,7 +57,7 @@ class SportsConfiguration {
         }
     }
 }
-@RestControllerAdvice(assignableTypes=[SportsController::class,FinanceController::class])
+@RestControllerAdvice(assignableTypes=[SportsController::class,FinanceController::class,InvestmentController::class])
 class SportsErrors {
     private val log=org.slf4j.LoggerFactory.getLogger(SportsErrors::class.java)
     @ExceptionHandler(SportsError::class) fun domain(e: SportsError) = ResponseEntity.status(e.statusCode).body(mapOf("code" to e.code,"message" to e.message))
