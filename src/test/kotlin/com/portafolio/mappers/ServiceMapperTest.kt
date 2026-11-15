@@ -1,5 +1,6 @@
 package com.portafolio.mappers
 
+import com.portafolio.dtos.ServiceDto
 import com.portafolio.models.PaymentReportInterface
 import com.portafolio.services.Utilities
 import org.junit.Assert.assertEquals
@@ -28,6 +29,35 @@ class ServiceMapperTest {
         assertEquals("\$25.000", report.totalValue)
         assertEquals("\$125.000", report.totalDebt)
         assertEquals(3, report.paymentsData.size)
+    }
+
+    @Test
+    fun `direct purchase is normalized as fully paid without down payment`() {
+        val service = mapper.map(ServiceDto(
+            serviceId = 0,
+            applicationUserId = 0,
+            serviceValue = BigDecimal("100000"),
+            downPayment = BigDecimal("10000"),
+            discount = BigDecimal.ZERO,
+            debt = BigDecimal("100000"),
+            totalValue = BigDecimal("100000"),
+            daysPerFee = 7,
+            quantityOfFees = 10,
+            feeValue = BigDecimal("11111"),
+            walletId = 1,
+            customerId = 2,
+            observations = null,
+            pendingFees = 9,
+            payDownInInstallments = true,
+            directPurchase = true
+        ), applicationUserId = 8)
+
+        assertEquals(BigDecimal.ZERO, service.downPayment)
+        assertEquals(BigDecimal.ZERO, service.downPaymentTotal)
+        assertEquals(BigDecimal.ZERO, service.debt)
+        assertEquals(BigDecimal.ZERO, service.feeValue)
+        assertEquals(0, service.pendingFees)
+        assertEquals(false, service.payDownInInstallments)
     }
 
     private fun payment(id: Long, serviceId: Long, value: String, debt: String) = object : PaymentReportInterface {

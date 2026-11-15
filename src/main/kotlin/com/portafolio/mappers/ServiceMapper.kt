@@ -27,17 +27,21 @@ class ServiceMapper {
     lateinit var paymentRepository: PaymentRepository
 
     fun map(serviceDto: ServiceDto, applicationUserId: Long): Service {
-        var downPaymentTotal = serviceDto.downPayment
+        val downPayment = if (serviceDto.directPurchase) BigDecimal.ZERO else serviceDto.downPayment
+        val debt = if (serviceDto.directPurchase) BigDecimal.ZERO else serviceDto.debt
+        val feeValue = if (serviceDto.directPurchase) BigDecimal.ZERO else serviceDto.feeValue
+        val pendingFees = if (serviceDto.directPurchase) 0 else serviceDto.pendingFees
+        var downPaymentTotal = downPayment
 
-        if (serviceDto.payDownInInstallments) {
+        if (serviceDto.payDownInInstallments && !serviceDto.directPurchase) {
             downPaymentTotal = serviceDto.totalValue.multiply(0.1.toBigDecimal())
         }
         val service = Service(
             applicationUserId = applicationUserId,
             serviceValue = serviceDto.serviceValue,
-            downPayment = serviceDto.downPayment,
+            downPayment = downPayment,
             discount = serviceDto.discount,
-            debt = serviceDto.debt,
+            debt = debt,
             totalValue = serviceDto.totalValue,
             walletId = serviceDto.walletId,
             hasProducts = serviceDto.serviceProducts.isNotEmpty(),
@@ -45,12 +49,12 @@ class ServiceMapper {
             state = serviceDto.state,
             daysPerFee = serviceDto.daysPerFee,
             quantityOfFees = serviceDto.quantityOfFees,
-            feeValue = serviceDto.feeValue,
+            feeValue = feeValue,
             observations = serviceDto.observations,
             nextPaymentDate = serviceDto.nextPaymentDate,
-            pendingFees = serviceDto.pendingFees,
+            pendingFees = pendingFees,
             downPaymentTotal = downPaymentTotal,
-            payDownInInstallments = serviceDto.payDownInInstallments
+            payDownInInstallments = serviceDto.payDownInInstallments && !serviceDto.directPurchase
         )
 
         service.serviceProducts = serviceDto.serviceProducts

@@ -92,6 +92,9 @@ data class ServiceDto (
     val pendingFees: Int?,
 
     @JsonProperty("pay_down_in_installments")
-    val payDownInInstallments: Boolean = false
+    val payDownInInstallments: Boolean = false,
+
+    @JsonProperty("direct_purchase")
+    val directPurchase: Boolean = false
 
 )

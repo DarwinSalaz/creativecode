@@ -73,7 +73,11 @@ class PaymentController {
         try {
             service.cancelPayment(paymentId, user)
         } catch (e: IllegalArgumentException) {
-            println("exception: ${e.message}")
+            return ResponseEntity.badRequest()
+                .body(mapOf("ok" to "false", "message" to (e.message ?: "No fue posible cancelar el abono.")))
+        } catch (e: Exception) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(mapOf("ok" to "false", "message" to (e.message ?: "Error interno cancelando el abono.")))
         }
 
         return ResponseEntity.ok(mapOf("ok" to "true"))

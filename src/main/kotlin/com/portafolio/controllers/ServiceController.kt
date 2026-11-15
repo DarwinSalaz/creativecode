@@ -59,7 +59,8 @@ class ServiceController {
 
         user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
 
-        val serviceCreated = service.save(mapper.map(serviceDto, user.applicationUserId), user, serviceDto.initialPayment)
+        val initialPayment = if (serviceDto.directPurchase) serviceDto.totalValue else serviceDto.initialPayment
+        val serviceCreated = service.save(mapper.map(serviceDto, user.applicationUserId), user, initialPayment)
 
         return ResponseEntity.status(HttpStatus.OK).body(serviceCreated)
     }

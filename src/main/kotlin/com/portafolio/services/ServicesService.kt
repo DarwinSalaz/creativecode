@@ -113,7 +113,7 @@ class ServicesService(
 
         val serviceSaved = repository.save(service)
 
-        val payment = if (initialPayment != null && initialPayment >= BigDecimal.ZERO) {
+        val payment = if (initialPayment != null && initialPayment > BigDecimal.ZERO) {
             paymentService.savePayment(serviceSaved.serviceId, initialPayment, applicationUser)
         } else null
 

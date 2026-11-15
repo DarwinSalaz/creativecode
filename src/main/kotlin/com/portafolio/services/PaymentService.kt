@@ -99,6 +99,12 @@ class PaymentService {
         if (payment.status == "canceled") {
             throw IllegalArgumentException("payment already canceled")
         }
+        if (payment.value.compareTo(BigDecimal.ZERO) == 0) {
+            payment.status = "canceled"
+            payment.canceledAt = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS)
+            payment.canceledBy = user.username
+            return repository.save(payment)
+        }
         val cashMovementP = cashMovementRepository.findCashMovementsByPaymentId(paymentId).first()
         val cashControlId = cashMovementP.cashControlId
             ?: throw IllegalArgumentException("No se encontró CashMovement para el serviceId dado")
@@ -106,7 +112,7 @@ class PaymentService {
             ?: throw IllegalArgumentException("No se encontró CashControl para el id dado")
 
         //val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
-        val commission = payment.value.multiply(0.12.toBigDecimal())
+        val commission = cashMovementP.commission
 
         val downPayment = serviceDownPaymentPaymentRepository.findByPaymentPaymentId(paymentId)
         val downPaymentValue = downPayment.firstOrNull()?.value ?: BigDecimal.ZERO
