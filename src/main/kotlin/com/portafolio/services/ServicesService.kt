@@ -281,14 +281,22 @@ class ServicesService(
         val service = repository.findById(serviceId).get()
 
         service.debt = service.debt - value
-        service.pendingFees = service.debt.divide(service.feeValue, 0, RoundingMode.CEILING).toInt()
+        service.pendingFees = if (service.feeValue.compareTo(BigDecimal.ZERO) > 0) {
+            service.debt.divide(service.feeValue, 0, RoundingMode.CEILING).toInt()
+        } else {
+            0
+        }
         service.nextPaymentDate = nextPaymentDate ?: service.nextPaymentDate
         if (depositPayment != null && depositPayment !== BigDecimal.ZERO) {
             service.downPayment = service.downPayment.add(depositPayment)
         }
         service.state = if (service.debt.compareTo(BigDecimal.ZERO) == 0) "fully_paid" else "paying"
 
-        service.pendingValue = getPendingValue(value, service.pendingValue, service.feeValue, service.state)
+        service.pendingValue = if (service.feeValue.compareTo(BigDecimal.ZERO) > 0) {
+            getPendingValue(value, service.pendingValue, service.feeValue, service.state)
+        } else {
+            service.debt
+        }
 
 
         if (service.hasExpiredPayment == true && value.compareTo(service.feeValue) >= 0) {
@@ -442,7 +450,7 @@ class ServicesService(
                 filter { it.status != "canceled" }
 
         if (activePayments != null && activePayments.isNotEmpty()) {
-            throw IllegalArgumentException("No se puede eliminar el servicio porque tiene más de un pago asociado.")
+            throw IllegalArgumentException("No se puede eliminar el servicio porque tiene uno o más pagos activos asociados. Cancele los pagos antes de eliminarlo.")
         }
 
         val cashMovementService = cashMovementRepository.findCashMovementsByServiceId(service.serviceId).first()
