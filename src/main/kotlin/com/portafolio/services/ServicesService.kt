@@ -407,6 +407,10 @@ class ServicesService(
             IllegalArgumentException("Servicio no encontrado")
         }
 
+        if (service.customerId != customerId) {
+            throw IllegalArgumentException("El cliente no corresponde al servicio indicado")
+        }
+
         val customer = customerRepository.findById(customerId).orElseThrow {
             IllegalArgumentException("Cliente no encontrado")
         }

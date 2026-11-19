@@ -3,6 +3,7 @@ package com.portafolio.services
 import com.nhaarman.mockitokotlin2.mock
 import com.nhaarman.mockitokotlin2.whenever
 import com.portafolio.entities.Service
+import com.portafolio.repositories.CustomerRepository
 import com.portafolio.repositories.ExpenseRepository
 import com.portafolio.repositories.RevenueRepository
 import com.portafolio.repositories.ServiceRepository
@@ -17,12 +18,14 @@ class ServicesServiceTest {
     private val expenseRepository = mock<ExpenseRepository>()
     private val revenueRepository = mock<RevenueRepository>()
     private val serviceRepository = mock<ServiceRepository>()
+    private val customerRepository = mock<CustomerRepository>()
     private lateinit var service: ServicesService
 
     @Before
     fun setUp() {
         service = ServicesService(expenseRepository, revenueRepository)
         ReflectionTestUtils.setField(service, "repository", serviceRepository)
+        ReflectionTestUtils.setField(service, "customerRepository", customerRepository)
     }
 
     @Test
@@ -49,5 +52,13 @@ class ServicesServiceTest {
         assertEquals(BigDecimal("90000"), updated.pendingValue)
         assertEquals(0, updated.pendingFees)
         assertEquals("paying", updated.state)
+    }
+
+    @Test(expected = IllegalArgumentException::class)
+    fun `marking for withdrawal rejects a customer unrelated to the service`() {
+        val account = Service(serviceId = 88, customerId = 10)
+        whenever(serviceRepository.findById(88)).thenReturn(Optional.of(account))
+
+        service.markForWithdrawal(serviceId = 88, customerId = 11)
     }
 }

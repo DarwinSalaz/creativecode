@@ -234,7 +234,7 @@ class ServiceController {
     ): ResponseEntity<Map<String, String>> {
         val user = getAuthenticatedUser(authorization)
             ?: return ResponseEntity(mapOf("status" to "unauthorized"), HttpStatus.UNAUTHORIZED)
-        if (user.userProfileId != 1) {
+        if (user.userProfileId !in listOf(1, 3)) {
             return ResponseEntity(mapOf("status" to "forbidden"), HttpStatus.FORBIDDEN)
         }
         service.markForWithdrawal(request.serviceId, request.customerId)
