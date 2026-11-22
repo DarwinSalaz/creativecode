@@ -36,6 +36,18 @@ data class ProductDto(
 
     @field:NotNull(message = "WalletId is notNull")
     @JsonProperty("wallet_id")
-    val walletId: Int
+    val walletId: Int,
+
+    @JsonProperty("value_4_installments")
+    val value4Installments: BigDecimal? = null,
+
+    @JsonProperty("value_6_installments")
+    val value6Installments: BigDecimal? = null,
+
+    @JsonProperty("value_8_installments")
+    val value8Installments: BigDecimal? = null,
+
+    @JsonProperty("value_10_installments")
+    val value10Installments: BigDecimal? = null
 
 )

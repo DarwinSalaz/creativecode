@@ -1,6 +1,7 @@
 package com.portafolio.services
 
 import com.portafolio.entities.*
+import com.portafolio.dtos.PaymentReceiptResponse
 import com.portafolio.repositories.*
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
@@ -46,7 +47,7 @@ class PaymentService {
     }
 
     @Transactional
-    fun save(payment: Payment, nextPaymentDate: LocalDateTime?, depositPayment: BigDecimal?) : Payment {
+    fun save(payment: Payment, nextPaymentDate: LocalDateTime?, depositPayment: BigDecimal?) : PaymentReceiptResponse {
 
         //validate if the user has an active cash control
         val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
@@ -90,7 +91,17 @@ class PaymentService {
 
         cashMovementRepository.save(cashMovement)
 
-        return paymentSaved
+        return PaymentReceiptResponse(
+            paymentId = paymentSaved.paymentId,
+            serviceId = paymentSaved.serviceId,
+            customerName = customerName.trim(),
+            paymentValue = transactionValue,
+            balance = service.debt,
+            paymentDate = paymentSaved.createdAt,
+            nextPaymentDate = service.nextPaymentDate,
+            companyName = customer.company.name,
+            companyNit = customer.company.nit
+        )
     }
 
     @Transactional

@@ -39,6 +39,18 @@ data class Product (
 
     @NotNull
     @Column(name = "left_quantity")
-    var leftQuantity: Int
+    var leftQuantity: Int,
+
+    @Column(name = "value_4_installments")
+    var value4Installments: BigDecimal? = null,
+
+    @Column(name = "value_6_installments")
+    var value6Installments: BigDecimal? = null,
+
+    @Column(name = "value_8_installments")
+    var value8Installments: BigDecimal? = null,
+
+    @Column(name = "value_10_installments")
+    var value10Installments: BigDecimal? = null
 
 )

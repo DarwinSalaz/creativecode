@@ -191,7 +191,11 @@ class InventoryMovementService(
                     value = sourceProduct.value,
                     cost = sourceProduct.cost,
                     wallet = targetWallet,
-                    leftQuantity = 0
+                    leftQuantity = 0,
+                    value4Installments = sourceProduct.value4Installments,
+                    value6Installments = sourceProduct.value6Installments,
+                    value8Installments = sourceProduct.value8Installments,
+                    value10Installments = sourceProduct.value10Installments
                 )
             )
 

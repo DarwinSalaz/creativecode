@@ -1,6 +1,7 @@
 package com.portafolio.controllers
 
 import com.portafolio.dtos.PaymentDto
+import com.portafolio.dtos.PaymentReceiptResponse
 import com.portafolio.mappers.PaymentMapper
 import com.portafolio.repositories.ApplicationUserRepository
 import com.portafolio.services.ApplicationUserService
@@ -35,7 +36,7 @@ class PaymentController {
 
     @PostMapping("/payment/create")
     fun registerPayment(@Valid @RequestBody paymentDto : PaymentDto,
-                        @RequestHeader("Authorization") authorization: String) : Map<String, Long>? {
+                        @RequestHeader("Authorization") authorization: String) : PaymentReceiptResponse? {
 
         val token = if (authorization.contains("Bearer")) authorization.split(" ")[1] else authorization
         val applicationUsername : String = applicationUserService.verifyToken(token)
@@ -50,9 +51,7 @@ class PaymentController {
 
         paymentDto.applicationUserId = user.applicationUserId
 
-        val payment = service.save(mapper.map(paymentDto), paymentDto.nextPaymentDate, paymentDto.depositPayment)
-
-        return mapOf("payment_id" to payment.paymentId)
+        return service.save(mapper.map(paymentDto), paymentDto.nextPaymentDate, paymentDto.depositPayment)
     }
 
     @PutMapping("/payment/cancel")
