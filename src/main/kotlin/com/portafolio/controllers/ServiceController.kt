@@ -186,8 +186,8 @@ class ServiceController {
         val start = request.startsAt.truncatedTo(ChronoUnit.DAYS)
         val end = request.endsAt.withHour(23).withMinute(59).withSecond(59)
 
-        val data = repository.reportService(request.walletId, start, end)
-        val products = repository.findProductsSold(request.walletId, start, end)
+        val data = repository.reportService(request.walletId, start, end, request.applicationUserId)
+        val products = repository.findProductsSold(request.walletId, start, end, request.applicationUserId)
 
         return mapper.mapReport(data, products)
     }
@@ -195,28 +195,28 @@ class ServiceController {
     @PostMapping("payment/report")
     fun reportPayments(@Valid @RequestBody request: ResumeWalletRequest): PaymentReportResponse {
 
-        val data = repository.reportPayments(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+        val data = repository.reportPayments(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59), request.applicationUserId)
 
         return mapper.mapPaymentReport(data)
     }
 
     @PostMapping("expired/report")
     fun reportExpiredServices(@Valid @RequestBody request: ResumeWalletRequest): ExpiredServiceReportResponse {
-        val data = repository.reportExpiredServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+        val data = repository.reportExpiredServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59), request.applicationUserId)
 
         return mapper.mapExpiredServicesReport(data)
     }
 
     @PostMapping("withdrawal/report")
     fun reportWithdrawalServices(@Valid @RequestBody request: ResumeWalletRequest): ExpiredServiceReportResponse {
-        val data = repository.reportMarkedForWithdrawalServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+        val data = repository.reportMarkedForWithdrawalServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59), request.applicationUserId)
 
         return mapper.mapExpiredServicesReport(data)
     }
 
     @PostMapping("canceled/report")
     fun reportCanceledServices(@Valid @RequestBody request: ResumeWalletRequest): ExpiredServiceReportResponse {
-        val data = repository.reportCanceledServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+        val data = repository.reportCanceledServices(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59), request.applicationUserId)
 
         return mapper.mapExpiredServicesReport(data)
     }

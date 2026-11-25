@@ -76,6 +76,18 @@ data class CashControlResponse (
     @JsonProperty("total_liquidated_number")
     val totalLiquidatedNumber: BigDecimal,
 
+    @JsonProperty("cash_payments")
+    val cashPayments: String,
+
+    @JsonProperty("cash_payments_number")
+    val cashPaymentsNumber: BigDecimal,
+
+    @JsonProperty("transfer_payments")
+    val transferPayments: String,
+
+    @JsonProperty("transfer_payments_number")
+    val transferPaymentsNumber: BigDecimal,
+
     @JsonProperty("movements")
     val movements: List<CashMovementDto>? = null
 

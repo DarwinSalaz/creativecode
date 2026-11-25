@@ -17,9 +17,9 @@ class ServiceProductService {
     @Autowired
     private lateinit var productRepository: ProductRepository
 
-    fun getInventoryReport(walletId: Int, startAt: LocalDateTime, endsAt: LocalDateTime) : List<InventoryDetail> {
+    fun getInventoryReport(walletId: Int, startAt: LocalDateTime, endsAt: LocalDateTime, applicationUserId: Long? = null) : List<InventoryDetail> {
         val products = productRepository.findAllProductByWallets(listOf(walletId), Pageable.unpaged())
-        val serviceProducts = repository.findServiceProducts(walletId, startAt, endsAt)
+        val serviceProducts = repository.findServiceProducts(walletId, startAt, endsAt, applicationUserId)
 
         val result = arrayListOf<InventoryDetail>()
 

@@ -6,6 +6,7 @@ import com.portafolio.entities.ApplicationUser
 import com.portafolio.entities.CashControl
 import com.portafolio.entities.CashMovement
 import com.portafolio.services.Utilities
+import com.portafolio.repositories.CashMovementRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
 import java.math.BigDecimal
@@ -16,6 +17,9 @@ class CashControlMapper {
 
     @Autowired
     lateinit var utilities: Utilities
+
+    @Autowired
+    lateinit var cashMovementRepository: CashMovementRepository
 
     val formatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
 
@@ -28,6 +32,9 @@ class CashControlMapper {
         val partialLiquidations = cashControl.partialLiquidationsTotal ?: BigDecimal.ZERO
         val finalLiquidations = cashControl.finalLiquidationsTotal ?: BigDecimal.ZERO
         val totalLiquidated = partialLiquidations.add(finalLiquidations)
+        val paymentMovements = cashMovementRepository.findPaymentMovementsByCashControlId(cashControl.cashControlId)
+        val cashPayments = paymentMethodTotal(paymentMovements, "CASH")
+        val transferPayments = paymentMethodTotal(paymentMovements, "TRANSFER")
 
         return CashControlResponse(
             fullName = if (applicationUser.lastName == null) applicationUser.name else applicationUser.name + " " + applicationUser.lastName,
@@ -50,7 +57,11 @@ class CashControlMapper {
             finalLiquidations = utilities.currencyFormat(finalLiquidations.toString()),
             finalLiquidationsNumber = finalLiquidations,
             totalLiquidated = utilities.currencyFormat(totalLiquidated.toString()),
-            totalLiquidatedNumber = totalLiquidated
+            totalLiquidatedNumber = totalLiquidated,
+            cashPayments = utilities.currencyFormat(cashPayments.toString()),
+            cashPaymentsNumber = cashPayments,
+            transferPayments = utilities.currencyFormat(transferPayments.toString()),
+            transferPaymentsNumber = transferPayments
         )
 
     }
@@ -69,9 +80,18 @@ class CashControlMapper {
                 downPayments = utilities.currencyFormat(it.downPayments?.toPlainString() ?: BigDecimal.ZERO.toPlainString()),
                 createdAt = createdAt,
                 description = it.description,
-                expenseId = it.expenseId
+                expenseId = it.expenseId,
+                paymentMethod = it.paymentMethod
             )
         }
+
+    private fun paymentMethodTotal(movements: List<CashMovement>, method: String): BigDecimal =
+        movements
+            .filter { (it.paymentMethod ?: "CASH") == method }
+            .fold(BigDecimal.ZERO) { total, movement ->
+                val amount = movement.value.add(movement.commission).add(movement.downPayments ?: BigDecimal.ZERO)
+                if (movement.cashMovementType == "cancel_payment") total.subtract(amount) else total.add(amount)
+            }
 
 
 }

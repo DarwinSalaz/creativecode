@@ -19,7 +19,7 @@ class CashMovementController {
 
     @PostMapping("/cash_movement/wallet_resume")
     fun getCashMovementsByWallet(@Valid @RequestBody request: ResumeWalletRequest)
-        = cashMovementService.getCashMovementsByWallet(request.walletId, request.startsAt, request.endsAt)
+        = cashMovementService.getCashMovementsByWallet(request.walletId, request.startsAt, request.endsAt, request.applicationUserId)
 
     @PostMapping("/cash_movement/user_report")
     fun getUserMovementsReport(@Valid @RequestBody request: UserMovementsReportRequest): UserMovementsReportResponse {

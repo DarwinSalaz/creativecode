@@ -49,6 +49,10 @@ class PaymentService {
     @Transactional
     fun save(payment: Payment, nextPaymentDate: LocalDateTime?, depositPayment: BigDecimal?) : PaymentReceiptResponse {
 
+        require(payment.paymentMethod in setOf("CASH", "TRANSFER")) {
+            "Método de pago inválido. Seleccione efectivo o transferencia."
+        }
+
         //validate if the user has an active cash control
         val activeCashControl : CashControl = cashControlService.findActiveCashControlByUser(payment.applicationUser.applicationUserId)
         val commission = payment.value.multiply(0.12.toBigDecimal())
@@ -84,6 +88,7 @@ class PaymentService {
             cashControlId = cashControlId,
             commission = commission,
             downPayments = depositPayment,
+            paymentMethod = payment.paymentMethod,
             walletId = service.walletId,
             expenseId = null,
             revenueId = null
@@ -100,7 +105,8 @@ class PaymentService {
             paymentDate = paymentSaved.createdAt,
             nextPaymentDate = service.nextPaymentDate,
             companyName = customer.company.name,
-            companyNit = customer.company.nit
+            companyNit = customer.company.nit,
+            paymentMethod = payment.paymentMethod
         )
     }
 
@@ -154,6 +160,7 @@ class PaymentService {
             cashControlId = cashControlId,
             commission = commission,
             downPayments = downPaymentValue,
+            paymentMethod = payment.paymentMethod,
             walletId = service.walletId,
             expenseId = null,
             revenueId = null

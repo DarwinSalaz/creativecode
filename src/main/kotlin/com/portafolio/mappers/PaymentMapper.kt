@@ -5,6 +5,7 @@ import com.portafolio.entities.Payment
 import com.portafolio.repositories.ApplicationUserRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Component
+import java.util.Locale
 
 @Component
 class PaymentMapper {
@@ -16,7 +17,8 @@ class PaymentMapper {
         Payment(
             applicationUser = applicationUserRepository.getOne(paymentDto.applicationUserId),
             serviceId = paymentDto.serviceId,
-            value = paymentDto.value
+            value = paymentDto.value,
+            paymentMethod = paymentDto.paymentMethod.trim().toUpperCase(Locale.ROOT)
         )
 
 }

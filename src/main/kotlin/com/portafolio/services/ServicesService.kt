@@ -311,9 +311,11 @@ class ServicesService(
     fun generateWalletReportData(dto: ResumeWalletRequest): WalletResumeResponse {
         val expenses = expenseRepository
             .findByWalletAndDateRange(dto.walletId, dto.startsAt, dto.endsAt)
+            .filter { dto.applicationUserId == null || it.applicationUserId == dto.applicationUserId }
 
         val revenues = revenueRepository
             .findByWalletAndDateRange(dto.walletId, dto.startsAt, dto.endsAt)
+            .filter { dto.applicationUserId == null || it.applicationUserId == dto.applicationUserId }
 
         val wallet = walletRepository.findById(dto.walletId)
             .orElseThrow { IllegalArgumentException("Wallet not found: ${dto.walletId}") }

@@ -10,8 +10,8 @@ import java.time.LocalDateTime
 @Repository
 interface ServiceProductRepository: JpaRepository<ServiceProduct, ServiceProductPrimaryKey> {
 
-    @Query("SELECT sp FROM ServiceProduct sp WHERE sp.service.walletId = ?1 and sp.service.createdAt between ?2 and ?3")
-    fun findServiceProducts(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : List<ServiceProduct>
+    @Query("SELECT sp FROM ServiceProduct sp WHERE sp.service.walletId = ?1 and sp.service.createdAt between ?2 and ?3 and (?4 is null or sp.service.applicationUserId = ?4)")
+    fun findServiceProducts(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime, applicationUserId: Long?) : List<ServiceProduct>
 
     @Query(value = """
         SELECT DISTINCT p.wallet_id

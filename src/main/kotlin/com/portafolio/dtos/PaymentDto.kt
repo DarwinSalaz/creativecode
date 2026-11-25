@@ -19,6 +19,9 @@ data class PaymentDto (
     val nextPaymentDate: LocalDateTime? = null,
 
     @JsonProperty("deposit_payment")
-    val depositPayment: BigDecimal = BigDecimal.ZERO
+    val depositPayment: BigDecimal = BigDecimal.ZERO,
+
+    @JsonProperty("payment_method")
+    val paymentMethod: String = "CASH"
 
 )

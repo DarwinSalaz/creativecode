@@ -30,5 +30,8 @@ data class PaymentReceiptResponse(
     val companyName: String,
 
     @JsonProperty("company_nit")
-    val companyNit: String
+    val companyNit: String,
+
+    @JsonProperty("payment_method")
+    val paymentMethod: String
 )

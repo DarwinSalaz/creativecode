@@ -29,6 +29,10 @@ data class Payment (
     @Column(name = "value")
     val value: BigDecimal = BigDecimal.ZERO,
 
+    @JsonProperty("payment_method")
+    @Column(name = "payment_method")
+    val paymentMethod: String = "CASH",
+
     @JsonProperty("status")
     @Column(name = "status")
     var status: String = "created",

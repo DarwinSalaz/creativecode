@@ -75,7 +75,7 @@ class ProductController {
     @PostMapping("inventory/report")
     fun inventoryReport(@Valid @RequestBody request: ResumeWalletRequest): List<InventoryDetail> {
 
-        return serviceProductService.getInventoryReport(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59))
+        return serviceProductService.getInventoryReport(request.walletId, request.startsAt.truncatedTo(ChronoUnit.DAYS), request.endsAt.withHour(23).withMinute(59).withSecond(59), request.applicationUserId)
     }
     
     @DeleteMapping("/product/{id_product}")

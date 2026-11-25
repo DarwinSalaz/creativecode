@@ -281,6 +281,9 @@ class CashControlService(
         val partialLiquidations = movements.filter { it.cashMovementType == "partial_liquidation" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         val finalLiquidations = movements.filter { it.cashMovementType == "final_liquidation" }.map { it.value }.fold (BigDecimal.ZERO) { a, b -> a.add(b) }
         val totalLiquidated = partialLiquidations.add(finalLiquidations)
+        val paymentMovements = movements.filter { it.cashMovementType == "fee_payment" || it.cashMovementType == "cancel_payment" }
+        val cashPayments = paymentMethodTotal(paymentMovements, "CASH")
+        val transferPayments = paymentMethodTotal(paymentMovements, "TRANSFER")
 
         return CashControlResponse (
             fullName = if (applicationUser.lastName == null) applicationUser.name else applicationUser.name + " " + applicationUser.lastName,
@@ -305,9 +308,21 @@ class CashControlService(
             finalLiquidationsNumber = finalLiquidations,
             totalLiquidated = utilities.currencyFormat(totalLiquidated.toString()),
             totalLiquidatedNumber = totalLiquidated,
+            cashPayments = utilities.currencyFormat(cashPayments.toString()),
+            cashPaymentsNumber = cashPayments,
+            transferPayments = utilities.currencyFormat(transferPayments.toString()),
+            transferPaymentsNumber = transferPayments,
             movements = movementsDto
         )
     }
+
+    private fun paymentMethodTotal(movements: List<CashMovement>, method: String): BigDecimal =
+        movements
+            .filter { (it.paymentMethod ?: "CASH") == method }
+            .fold(BigDecimal.ZERO) { total, movement ->
+                val amount = movement.value.add(movement.commission).add(movement.downPayments ?: BigDecimal.ZERO)
+                if (movement.cashMovementType == "cancel_payment") total.subtract(amount) else total.add(amount)
+            }
 
     fun findCashControlById(cashControlId: Long): CashControl? {
         return repository.findById(cashControlId).orElse(null)

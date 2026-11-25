@@ -10,6 +10,9 @@ import java.time.LocalDateTime
 @Repository
 interface CashMovementRepository: JpaRepository<CashMovement, Long> {
 
+    @Query("SELECT c FROM CashMovement c WHERE c.cashControlId = ?1 AND c.cashMovementType IN ('fee_payment', 'cancel_payment')")
+    fun findPaymentMovementsByCashControlId(cashControlId: Long): List<CashMovement>
+
     @Query("SELECT c FROM CashMovement c WHERE c.cashControlId = ?1 ORDER BY c.createdAt DESC")
     fun findCashMovementsByCashControlId(cashControlId: Long): List<CashMovement>
 

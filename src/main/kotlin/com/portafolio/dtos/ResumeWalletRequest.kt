@@ -16,6 +16,9 @@ data class ResumeWalletRequest (
 
     @field:NotNull
     @JsonProperty("ends_at")
-    val endsAt: LocalDateTime
+    val endsAt: LocalDateTime,
+
+    @JsonProperty("application_user_id")
+    val applicationUserId: Long? = null
 
 )

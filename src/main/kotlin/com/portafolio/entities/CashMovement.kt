@@ -54,6 +54,10 @@ data class CashMovement(
     @Column(name = "down_payments")
     var downPayments: BigDecimal? = BigDecimal.ZERO,
 
+    @JsonProperty("payment_method")
+    @Column(name = "payment_method")
+    var paymentMethod: String? = null,
+
     @JsonProperty("justification")
     @Column(name = "justification")
     var justification: String? = null,

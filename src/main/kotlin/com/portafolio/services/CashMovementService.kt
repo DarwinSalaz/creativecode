@@ -29,8 +29,10 @@ class CashMovementService {
     @Autowired
     lateinit var utilities: Utilities
 
-    fun getCashMovementsByWallet(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime) : ResumeWallet {
-        val movements = cashMovementRepository.getCashMovementsByWallet(walletId, startsAt.truncatedTo(ChronoUnit.DAYS), endsAt.withHour(23).withMinute(59).withSecond(59))
+    fun getCashMovementsByWallet(walletId: Int, startsAt: LocalDateTime, endsAt: LocalDateTime, applicationUserId: Long? = null) : ResumeWallet {
+        val movements = cashMovementRepository
+            .getCashMovementsByWallet(walletId, startsAt.truncatedTo(ChronoUnit.DAYS), endsAt.withHour(23).withMinute(59).withSecond(59))
+            .filter { applicationUserId == null || it.applicationUserId == applicationUserId }
 
         val servicesCount = movements.filter { it.cashMovementType == "new_service" }.size
         val inputs = movements.filter { it.movementType == "IN" }

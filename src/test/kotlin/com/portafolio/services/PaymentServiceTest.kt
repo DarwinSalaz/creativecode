@@ -8,6 +8,7 @@ import com.portafolio.entities.ApplicationUser
 import com.portafolio.entities.Payment
 import com.portafolio.repositories.CashMovementRepository
 import com.portafolio.repositories.PaymentRepository
+import org.junit.Assert.fail
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Before
@@ -19,6 +20,7 @@ import java.util.Optional
 class PaymentServiceTest {
     private val paymentRepository = mock<PaymentRepository>()
     private val cashMovementRepository = mock<CashMovementRepository>()
+    private val cashControlService = mock<CashControlService>()
     private lateinit var service: PaymentService
 
     @Before
@@ -26,6 +28,7 @@ class PaymentServiceTest {
         service = PaymentService()
         ReflectionTestUtils.setField(service, "repository", paymentRepository)
         ReflectionTestUtils.setField(service, "cashMovementRepository", cashMovementRepository)
+        ReflectionTestUtils.setField(service, "cashControlService", cashControlService)
     }
 
     @Test
@@ -55,5 +58,31 @@ class PaymentServiceTest {
         assertNotNull(canceled.canceledAt)
         verify(paymentRepository).save(payment)
         verify(cashMovementRepository, never()).findCashMovementsByPaymentId(21)
+    }
+
+    @Test
+    fun `rejects an unsupported payment method before changing cash control`() {
+        val user = ApplicationUser(
+            applicationUserId = 8,
+            companyId = 1,
+            username = "admin",
+            name = "Admin",
+            password = "unused",
+            userProfileId = 1,
+            active = true
+        )
+        val payment = Payment(
+            applicationUser = user,
+            serviceId = 15,
+            value = BigDecimal.TEN,
+            paymentMethod = "CARD"
+        )
+
+        try {
+            service.save(payment, null, BigDecimal.ZERO)
+            fail("An unsupported payment method must be rejected")
+        } catch (error: IllegalArgumentException) {
+            assertEquals("Método de pago inválido. Seleccione efectivo o transferencia.", error.message)
+        }
     }
 }

@@ -34,5 +34,8 @@ data class CashMovementDto(
     var description: String?,
 
     @JsonProperty("expense_id")
-    var expenseId: Long?
+    var expenseId: Long?,
+
+    @JsonProperty("payment_method")
+    var paymentMethod: String?
 )
