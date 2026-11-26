@@ -18,7 +18,7 @@ export class AppComponent implements OnInit,OnDestroy {
   settings:Settings={name:'Cancha',timezone:'America/Bogota',currency:'COP',toleranceMinutes:15,waterMinutes:30,warningMinutes:5};
   error=''; notice=''; busy=false; refreshing=false; loading=false; lastSync=''; now=Date.now(); serverAnchor=Date.now(); performanceAnchor=performance.now();
   login={tenantId:localStorage.getItem('sports.business')||'',username:'',password:''};
-  editor=false; editing?:Booking; form:any={}; contact:{id?:string;name:string;phone:string;notes:string}={name:'',phone:'',notes:''}; contactTeacher=false;
+  editor=false; reservationDetails=false; editing?:Booking; form:any={}; contact:{id?:string;name:string;phone:string;notes:string}={name:'',phone:'',notes:''}; contactTeacher=false;
   courtForm:any={name:'',sport:'Fútbol',capacity:10,durationMinutes:60,color:'#167d69',active:true};
   venues:any[]=[]; venueForm:any={name:'',address:''};
   pricingEditor=false; pricingCourtFilter=''; weekdays=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
@@ -63,7 +63,9 @@ export class AppComponent implements OnInit,OnDestroy {
   days(){if(this.calendarMode==='day'||this.tab==='pending'||window.matchMedia('(max-width:760px)').matches)return [this.selectedDate];const d=new Date(this.selectedDate+'T12:00:00Z');const monday=this.shiftDate(this.selectedDate,-((d.getUTCDay()+6)%7));return Array.from({length:7},(_,i)=>this.shiftDate(monday,i));}
   async move(n:number){this.selectedDate=this.shiftDate(this.selectedDate,n*(this.calendarMode==='week'&&this.tab!=='pending'&&!window.matchMedia('(max-width:760px)').matches?7:1));await this.refresh();}
   async selectTab(tab:string){this.tab=tab;this.error='';if(tab==='settings'&&this.actor?.role==='ADMIN'){await this.run(async()=>{[this.prices,this.users,this.venues]=await Promise.all([this.api.request<any[]>('/pricing-rules'),this.api.request<any[]>('/users'),this.api.request<any[]>('/venues')]);});}await this.refresh();}
-  visible(date:string){return this.bookings.filter(b=>this.dateKey(new Date(b.start))===date&&(!this.courtFilter||b.courtId===this.courtFilter)).sort((a,b)=>a.start.localeCompare(b.start));}
+  released(b:Booking){return ['CANCELLED_CLIENT','CANCELLED_RAIN','NO_SHOW'].includes(b.status);}
+  releasedBookings(){const dates=this.days();return this.bookings.filter(b=>this.released(b)&&dates.includes(this.dateKey(new Date(b.start)))&&(!this.courtFilter||b.courtId===this.courtFilter)).sort((a,b)=>a.start.localeCompare(b.start));}
+  visible(date:string){return this.bookings.filter(b=>!this.released(b)&&this.dateKey(new Date(b.start))===date&&(!this.courtFilter||b.courtId===this.courtFilter)).sort((a,b)=>a.start.localeCompare(b.start));}
   pending(){return this.bookings.filter(b=>b.status==='PENDING'&&(!this.courtFilter||b.courtId===this.courtFilter));}
   courtName(id:string){return this.courts.find(c=>c.id===id)?.name||'Cancha';}
   color(id:string){return this.courts.find(c=>c.id===id)?.color||'#167d69';}
@@ -76,7 +78,7 @@ export class AppComponent implements OnInit,OnDestroy {
     for(let n=0;n<3;n++){const parts=new Intl.DateTimeFormat('en-CA',{timeZone:this.settings.timezone,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(instant));const p:any={};parts.forEach(v=>p[v.type]=v.value);const observed=Date.parse(`${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}:${p.second}Z`);instant+=target-observed;}
     return new Date(instant).toISOString();
   }
-  open(b?:Booking,date=this.selectedDate){this.repeatWeekly=false;this.repeatUntil='';this.repeatId=crypto.randomUUID();this.editing=b;this.form=b?{...b,start:this.localInput(b.start),end:this.localInput(b.end),outsideHoursConfirmed:false}:{courtId:this.courtFilter||this.courts.find(c=>c.active)?.id||'',guestName:'',teamName:'',phone:'',kind:'NORMAL',status:'PENDING',start:date+'T19:00',end:date+'T20:00',notes:'',outsideHoursConfirmed:false};if(!b)this.defaultDuration();this.editor=true;this.error='';}
+  open(b?:Booking,date=this.selectedDate){this.repeatWeekly=false;this.repeatUntil='';this.repeatId=crypto.randomUUID();this.editing=b;this.reservationDetails=!b;this.form=b?{...b,start:this.localInput(b.start),end:this.localInput(b.end),outsideHoursConfirmed:false}:{courtId:this.courtFilter||this.courts.find(c=>c.active)?.id||'',guestName:'',teamName:'',phone:'',kind:'NORMAL',status:'PENDING',start:date+'T19:00',end:date+'T20:00',notes:'',outsideHoursConfirmed:false};if(!b)this.defaultDuration();this.editor=true;this.error='';}
   calendarCourts(){return this.courts.filter(c=>!this.courtFilter||c.id===this.courtFilter);}
   openSlot(date:string,minute:number,court:Court){
     if(this.busy||!court.active)return;
@@ -110,11 +112,11 @@ export class AppComponent implements OnInit,OnDestroy {
   async stopSeries(r:any){const fromDate=this.stopDates[r.id]||this.dateKey(new Date());if(!confirm(`¿Terminar la serie de ${r.guestName} desde ${fromDate}? Se cancelarán las reservas pendientes y confirmadas desde esa fecha; se conservan las anteriores y las que ya iniciaron.`))return;await this.run(async()=>{await this.api.request(`/recurrence-rules/${r.id}/stop`,'POST',{fromDate,version:r.version});await this.refresh();this.notice='Serie terminada desde '+fromDate;});}
 
   canEdit(b:Booking){return ['PENDING','CONFIRMED'].includes(b.status);}
-  async action(b:Booking,action:string){
+  async action(b:Booking,action:string,closeEditor=false){
     let reason:string|null=null;let exceptionConfirmed=false;
     if(['cancel','cancel-rain','mark-no-show'].includes(action)){if(!confirm(action==='mark-no-show'?'¿Marcar que no asistió y liberar el horario?':'¿Cancelar esta reserva y liberar el horario?'))return;reason=prompt('Motivo (opcional)','');if(reason===null)return;}
     if(action==='start'){const delta=(this.now-Date.parse(b.start))/60000;if(delta<0||delta>this.settings.toleranceMinutes){exceptionConfirmed=confirm('Inicio fuera de la hora o tolerancia programada. ¿Confirmas iniciar ahora?');if(!exceptionConfirmed)return;}}
-    await this.run(async()=>{const updated=await this.api.request<Booking>(`/reservations/${b.id}/${action}`,'POST',{version:b.version,reason,exceptionConfirmed,deviceId:this.device});this.notice=updated.rewardPercent?`Partido finalizado · beneficio aplicado: ${updated.rewardPercent}%${updated.finalPrice!=null?' · Valor a cobrar: '+updated.finalPrice+' COP':''}`:'Acción guardada';await this.refresh();});
+    await this.run(async()=>{const updated=await this.api.request<Booking>(`/reservations/${b.id}/${action}`,'POST',{version:b.version,reason,exceptionConfirmed,deviceId:this.device});if(closeEditor)this.editor=false;this.notice=updated.rewardPercent?`Partido finalizado · beneficio aplicado: ${updated.rewardPercent}%${updated.finalPrice!=null?' · Valor a cobrar: '+updated.finalPrice+' COP':''}`:'Acción guardada';await this.refresh();});
   }
   current(c:Court){return this.active.find(b=>b.courtId===c.id);}
   next(c:Court):Booking|undefined{return this.upcoming.filter(b=>b.courtId===c.id&&['CONFIRMED','PENDING'].includes(b.status)&&b.kind!=='BLOCK').sort((a,b)=>a.start.localeCompare(b.start))[0];}

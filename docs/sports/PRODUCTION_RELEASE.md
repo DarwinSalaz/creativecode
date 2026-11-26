@@ -1,3 +1,15 @@
+# Calendario y acciones de reserva — 26 noviembre 2026
+
+Publicación autorizada. Las canceladas y ausencias salen de la cuadrícula y quedan en un historial desplegable, filtrado por cancha y fechas visibles. Abrir una reserva muestra primero resumen y acciones; detalle y edición se abren a petición. Desistir de cancelar o recibir un error mantiene el diálogo abierto.
+
+- Cambio exclusivo del frontend deportivo, sin migraciones ni escrituras de datos productivos.
+- Angular compilado; Chrome con API simulada verificó reemplazo visible, historial, filtros, apertura y reemplazo de canceladas, acciones iniciales, detalle opcional, cancelación desistida y adaptación móvil.
+- Base de publicación: `38915ce`, que conserva los cambios recientes de ventas.
+- Respaldo del JAR previo: `.local/sports-release/pre-calendar-actions-20261126.jar`.
+- Verificación pública mediante `verify-finance-public.py --investments`, incluyendo hash del bundle y consultas de ventas, caja, series e inversiones.
+
+---
+
 # Inversiones externas de administradores — 11 noviembre 2026
 
 Publicación y creación de tablas autorizadas por el usuario. V006 aplicada en producción el 12 de noviembre a las 02:25 UTC: `sports.investments` y `sports.investment_contributions`, sin datos ficticios. No modifica caja, cierres ni filas existentes de ventas/deportes.
