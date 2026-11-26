@@ -71,12 +71,20 @@ interface ServiceRepository: JpaRepository<Service, Long> {
             "s.service_id as service_id,\n" +
             "p.value as value,\n" +
             "s.debt \n" +
-            "  + COALESCE((SELECT SUM(future_payment.value) \n" +
+            "  + COALESCE((SELECT SUM(future_payment.value + COALESCE((\n" +
+            "                                      SELECT SUM(future_down_payment.value)\n" +
+            "                                        FROM service_down_payment_payments future_down_payment\n" +
+            "                                       WHERE future_down_payment.payment_id = future_payment.payment_id\n" +
+            "                                  ), 0)) \n" +
             "                FROM payments future_payment \n" +
             "               WHERE future_payment.service_id = s.service_id \n" +
             "                 AND future_payment.created_at > ?3 \n" +
             "                 AND future_payment.status != 'canceled'), 0) \n" +
-            "  - COALESCE((SELECT SUM(later_canceled_payment.value) \n" +
+            "  - COALESCE((SELECT SUM(later_canceled_payment.value + COALESCE((\n" +
+            "                                      SELECT SUM(canceled_down_payment.value)\n" +
+            "                                        FROM service_down_payment_payments canceled_down_payment\n" +
+            "                                       WHERE canceled_down_payment.payment_id = later_canceled_payment.payment_id\n" +
+            "                                  ), 0)) \n" +
             "                FROM payments later_canceled_payment \n" +
             "               WHERE later_canceled_payment.service_id = s.service_id \n" +
             "                 AND later_canceled_payment.created_at <= ?3 \n" +

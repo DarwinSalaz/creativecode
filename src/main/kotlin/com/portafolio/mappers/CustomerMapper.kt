@@ -34,7 +34,9 @@ class CustomerMapper {
             gender = customerDto.gender,
             icon = iconCustomer,
             observation = customerDto.observation,
-            walletId = customerDto.walletId
+            walletId = customerDto.walletId,
+            latitude = customerDto.latitude,
+            longitude = customerDto.longitude
         )
 
         return customer
@@ -50,6 +52,13 @@ class CustomerMapper {
         customer.gender = customerDto.gender ?: customer.gender
         customer.observation = customerDto.observation ?: customer.observation
         customer.walletId = customerDto.walletId
+        if (customerDto.clearLocation) {
+            customer.latitude = null
+            customer.longitude = null
+        } else {
+            customer.latitude = customerDto.latitude ?: customer.latitude
+            customer.longitude = customerDto.longitude ?: customer.longitude
+        }
 
         return customer
     }

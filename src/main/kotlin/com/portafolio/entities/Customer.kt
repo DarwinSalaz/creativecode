@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import org.jetbrains.annotations.NotNull
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
+import java.math.BigDecimal
 import javax.persistence.*
 
 @Table(name = "customers")
@@ -63,6 +64,14 @@ data class Customer (
     var walletId: Int,
 
     @Column(name = "blocked")
-    var blocked: Boolean = false
+    var blocked: Boolean = false,
+
+    @JsonProperty("latitude")
+    @Column(name = "latitude")
+    var latitude: BigDecimal? = null,
+
+    @JsonProperty("longitude")
+    @Column(name = "longitude")
+    var longitude: BigDecimal? = null
 
 )

@@ -46,6 +46,11 @@ class ExpenseController {
         user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(ExpenseDeleteResponseDto(false, "Usuario no autorizado"))
 
+        if (user.userProfileId == 3 || user.userProfileId == 4) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ExpenseDeleteResponseDto(false, "Su perfil no tiene permiso para eliminar gastos"))
+        }
+
         val result = service.deleteExpense(expenseId)
 
         return if (result) {
@@ -103,6 +108,11 @@ class ExpenseController {
         val user = applicationUserRepository.findByUsername(username)
 
         user ?: return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("UNAUTHORIZED")
+
+        if (user.userProfileId == 3 || user.userProfileId == 4) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("Su perfil no tiene permiso para eliminar gastos")
+        }
 
         val result = service.deleteExpense(expenseId)
 
